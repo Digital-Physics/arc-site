@@ -845,7 +845,7 @@ function filterTasks() {
     return;
   }
 
-  // observer renders grid pixels only when a card scrolls near viewport
+  // observer fetches tasks/<id>.json and renders preview when card nears viewport
   cardObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
@@ -854,23 +854,27 @@ function filterTasks() {
       card.dataset.rendered = '1';
       cardObserver.unobserve(card);
 
-      const task = snapshot.tasks.find(t => t.id === card.dataset.taskId);
-      if (!task) return;
+      const taskId = card.dataset.taskId;
       const preview = card.querySelector('.task-preview');
-      const cs = cellSizeFor(task.train?.[0]?.input);
-      (task.train ?? []).slice(0, 2).forEach(p => {
-        const wrap = document.createElement('div');
-        wrap.className = 'pair-wrap';
-        wrap.appendChild(makeGrid(p.input, cs));
-        const arrow = document.createElement('span');
-        arrow.className = 'pair-arrow';
-        arrow.textContent = '→';
-        wrap.appendChild(arrow);
-        wrap.appendChild(makeGrid(p.output, cs));
-        preview.appendChild(wrap);
-      });
+      fetch(`data/tasks/${taskId}.json`)
+        .then(r => r.json())
+        .then(taskData => {
+          const cs = cellSizeFor(taskData.train?.[0]?.input);
+          (taskData.train ?? []).slice(0, 2).forEach(p => {
+            const wrap = document.createElement('div');
+            wrap.className = 'pair-wrap';
+            wrap.appendChild(makeGrid(p.input, cs));
+            const arrow = document.createElement('span');
+            arrow.className = 'pair-arrow';
+            arrow.textContent = '→';
+            wrap.appendChild(arrow);
+            wrap.appendChild(makeGrid(p.output, cs));
+            preview.appendChild(wrap);
+          });
+        })
+        .catch(() => { preview.textContent = '—'; });
     });
-  }, { rootMargin: '200px' }); // render 200px before entering view
+  }, { rootMargin: '200px' });
 
   // create lightweight card shells — no pixel divs yet
   tasks.forEach(task => {
@@ -892,27 +896,17 @@ function filterTasks() {
 }
 
 // ── modal ──────────────────────────────────────────────────────────────────
-function openModal(task) {
-  document.getElementById('modal-title').textContent = task.id;
-  const meta = [];
-  meta.push(`status: <span style="color:${task.status==='solved'?'var(--accent)':'var(--muted)'}">${task.status}</span>`);
-  meta.push(`train pairs: ${task.train?.length ?? 0}`);
-  if (task.program) meta.push(`program: <span class="program-badge">${task.program}</span>`);
-  if (task.first_solved) meta.push(`first solved: ${task.first_solved}`);
-  document.getElementById('modal-meta').innerHTML = meta.join('<span style="color:var(--border)"> · </span>');
-
+function renderModalGrids(taskData, task) {
   // train pairs
   const trainEl = document.getElementById('modal-train');
   trainEl.innerHTML = '';
-  (task.train ?? []).forEach((p, i) => {
+  (taskData.train ?? []).forEach((p, i) => {
     const cs = cellSizeFor(p.input);
     const block = document.createElement('div');
     block.className = 'pair-block';
     block.innerHTML = `<div class="pair-label">train ${i}</div>`;
     const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.gap = '8px';
-    row.style.alignItems = 'center';
+    row.style.cssText = 'display:flex;gap:8px;align-items:center';
     row.appendChild(makeGrid(p.input, cs));
     const arr = document.createElement('span');
     arr.className = 'pair-arrow';
@@ -926,7 +920,7 @@ function openModal(task) {
   // test inputs
   const testEl = document.getElementById('modal-test-input');
   testEl.innerHTML = '';
-  (task.test_inputs ?? []).forEach((inp, i) => {
+  (taskData.test_inputs ?? []).forEach((inp, i) => {
     const cs = cellSizeFor(inp);
     const block = document.createElement('div');
     block.className = 'pair-block';
@@ -935,7 +929,7 @@ function openModal(task) {
     testEl.appendChild(block);
   });
 
-  // guesses (pass@2) — show side by side
+  // guesses (pass@2) — side by side, skip duplicates
   const guesses = task.guesses ?? [];
   const guessSection = document.getElementById('modal-guesses-section');
   const displayEl = document.getElementById('modal-guess-display');
@@ -947,9 +941,7 @@ function openModal(task) {
     guessSection.style.display = 'block';
     const row = document.createElement('div');
     row.className = 'guesses-row';
-
     guesses.forEach((g, i) => {
-      // skip if identical to previous guess
       if (i > 0 && JSON.stringify(g) === JSON.stringify(guesses[i - 1])) return;
       const cs = cellSizeFor(g);
       const block = document.createElement('div');
@@ -961,12 +953,33 @@ function openModal(task) {
       block.appendChild(makeGrid(g, cs));
       row.appendChild(block);
     });
-
     displayEl.appendChild(row);
   }
+}
 
+function openModal(task) {
+  // show modal shell immediately with loading state
+  document.getElementById('modal-title').textContent = task.id;
+  const meta = [];
+  meta.push(`status: <span style="color:${task.status==='solved'?'var(--accent)':'var(--muted)'}">${task.status}</span>`);
+  if (task.program) meta.push(`program: <span class="program-badge">${task.program}</span>`);
+  if (task.first_solved) meta.push(`first solved: ${task.first_solved}`);
+  document.getElementById('modal-meta').innerHTML = meta.join('<span style="color:var(--border)"> · </span>');
+  document.getElementById('modal-train').innerHTML = '<span style="color:var(--muted);font-size:11px">loading…</span>';
+  document.getElementById('modal-test-input').innerHTML = '';
+  document.getElementById('modal-guess-display').innerHTML = '';
+  document.getElementById('modal-guesses-section').style.display = 'none';
   document.getElementById('modal-bg').classList.add('open');
   document.body.style.overflow = 'hidden';
+
+  // fetch grid data on demand from tasks/<id>.json
+  fetch(`data/tasks/${task.id}.json`)
+    .then(r => r.json())
+    .then(taskData => renderModalGrids(taskData, task))
+    .catch(() => {
+      document.getElementById('modal-train').innerHTML =
+        '<span style="color:var(--accent2);font-size:11px">failed to load task data</span>';
+    });
 }
 
 function closeModal(e) {
