@@ -435,6 +435,38 @@
 
   .guess-tab { display: none; /* replaced by side-by-side layout */ }
 
+  .card-program {
+    font-size: 10px;
+    color: var(--accent3);
+    margin-top: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--mono);
+  }
+
+  .step-badge {
+    background: #6aaeff12;
+    color: var(--accent3);
+    border: 1px solid #6aaeff28;
+    border-radius: 4px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-family: var(--mono);
+  }
+
+  .step-badge.fallback {
+    background: #ffffff08;
+    color: var(--muted);
+    border-color: var(--border);
+  }
+
+  .step-sep {
+    color: var(--muted);
+    font-size: 11px;
+    align-self: center;
+  }
+
   .program-badge {
     display: inline-block;
     background: #6aaeff15;
@@ -577,6 +609,10 @@
       <div class="modal-section-title">Jon's Algorithm (pass@2)</div>
       <div class="guess-tabs" id="guess-tabs"></div>
       <div id="modal-guess-display"></div>
+    </div>
+    <div id="modal-steps-section" style="display:none;margin-top:16px">
+      <div class="modal-section-title">DSL steps</div>
+      <div id="modal-steps" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
   </div>
 </div>
@@ -854,21 +890,25 @@ function filterTasks() {
       card.dataset.rendered = '1';
       cardObserver.unobserve(card);
 
-      const task = snapshot.tasks.find(t => t.id === card.dataset.taskId);
-      if (!task) return;
+      const taskId = card.dataset.taskId;
       const preview = card.querySelector('.task-preview');
-      const cs = cellSizeFor(task.train?.[0]?.input);
-      (task.train ?? []).slice(0, 2).forEach(p => {
-        const wrap = document.createElement('div');
-        wrap.className = 'pair-wrap';
-        wrap.appendChild(makeGrid(p.input, cs));
-        const arrow = document.createElement('span');
-        arrow.className = 'pair-arrow';
-        arrow.textContent = '→';
-        wrap.appendChild(arrow);
-        wrap.appendChild(makeGrid(p.output, cs));
-        preview.appendChild(wrap);
-      });
+      fetch(`data/tasks/${taskId}.json`)
+        .then(r => r.json())
+        .then(taskData => {
+          const cs = cellSizeFor(taskData.train?.[0]?.input);
+          (taskData.train ?? []).slice(0, 2).forEach(p => {
+            const wrap = document.createElement('div');
+            wrap.className = 'pair-wrap';
+            wrap.appendChild(makeGrid(p.input, cs));
+            const arrow = document.createElement('span');
+            arrow.className = 'pair-arrow';
+            arrow.textContent = '→';
+            wrap.appendChild(arrow);
+            wrap.appendChild(makeGrid(p.output, cs));
+            preview.appendChild(wrap);
+          });
+        })
+        .catch(() => { preview.textContent = '—'; });
     });
   }, { rootMargin: '200px' }); // render 200px before entering view
 
@@ -879,11 +919,14 @@ function filterTasks() {
     card.dataset.taskId = task.id;
     card.onclick = () => openModal(task);
 
+    const progLine = task.program
+      ? `<div class="card-program">${task.program}</div>` : '';
     card.innerHTML = `
       <div class="task-card-header">
         <span class="task-id">${task.id}</span>
         <span class="task-badge ${task.status}">${task.status}</span>
       </div>
+      ${progLine}
       <div class="task-preview" style="min-height:40px"></div>
     `;
     grid.appendChild(card);
@@ -893,7 +936,6 @@ function filterTasks() {
 
 // ── modal ──────────────────────────────────────────────────────────────────
 function renderModalGrids(taskData, task) {
-  // train pairs
   const trainEl = document.getElementById('modal-train');
   trainEl.innerHTML = '';
   (taskData.train ?? []).forEach((p, i) => {
@@ -913,7 +955,6 @@ function renderModalGrids(taskData, task) {
     trainEl.appendChild(block);
   });
 
-  // test inputs
   const testEl = document.getElementById('modal-test-input');
   testEl.innerHTML = '';
   (taskData.test_inputs ?? []).forEach((inp, i) => {
@@ -925,7 +966,6 @@ function renderModalGrids(taskData, task) {
     testEl.appendChild(block);
   });
 
-  // guesses (pass@2) — side by side, skip duplicates
   const guesses = task.guesses ?? [];
   const guessSection = document.getElementById('modal-guesses-section');
   const displayEl = document.getElementById('modal-guess-display');
@@ -951,45 +991,42 @@ function renderModalGrids(taskData, task) {
     displayEl.appendChild(row);
   }
 
-  // DSL steps — one row per guess showing step badges
   const steps = task.steps ?? [];
   const stepsEl = document.getElementById('modal-steps');
   const stepsSection = document.getElementById('modal-steps-section');
   stepsEl.innerHTML = '';
   const hasSteps = steps.some(s => s != null);
-  if (!hasSteps) {
-    stepsSection.style.display = 'none';
-    return;
-  }
-  stepsSection.style.display = 'block';
-  steps.forEach((s, i) => {
-    const guessWrap = document.createElement('div');
-    guessWrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap';
-    const gl = document.createElement('span');
-    gl.style.cssText = 'font-size:10px;color:var(--muted);min-width:22px';
-    gl.textContent = `G${i + 1}:`;
-    guessWrap.appendChild(gl);
-    if (s) {
-      s.split(' → ').forEach((step, si) => {
-        if (si > 0) {
-          const sep = document.createElement('span');
-          sep.className = 'step-sep';
-          sep.textContent = '→';
-          guessWrap.appendChild(sep);
-        }
+  stepsSection.style.display = hasSteps ? 'block' : 'none';
+  if (hasSteps) {
+    steps.forEach((s, i) => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap';
+      const gl = document.createElement('span');
+      gl.style.cssText = 'font-size:10px;color:var(--muted);min-width:22px';
+      gl.textContent = `G${i + 1}:`;
+      wrap.appendChild(gl);
+      if (s) {
+        s.split(' → ').forEach((step, si) => {
+          if (si > 0) {
+            const sep = document.createElement('span');
+            sep.className = 'step-sep';
+            sep.textContent = '→';
+            wrap.appendChild(sep);
+          }
+          const badge = document.createElement('span');
+          badge.className = 'step-badge';
+          badge.textContent = step.trim();
+          wrap.appendChild(badge);
+        });
+      } else {
         const badge = document.createElement('span');
-        badge.className = 'step-badge';
-        badge.textContent = step.trim();
-        guessWrap.appendChild(badge);
-      });
-    } else {
-      const badge = document.createElement('span');
-      badge.className = 'step-badge fallback';
-      badge.textContent = 'fallback';
-      guessWrap.appendChild(badge);
-    }
-    stepsEl.appendChild(guessWrap);
-  });
+        badge.className = 'step-badge fallback';
+        badge.textContent = 'fallback';
+        wrap.appendChild(badge);
+      }
+      stepsEl.appendChild(wrap);
+    });
+  }
 }
 
 function openModal(task) {
