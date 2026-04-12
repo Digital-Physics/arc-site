@@ -1,0 +1,1 @@
+This is a static site for visualizing and tracking my algorithm's progress on the ARC AGI 2 puzzles
