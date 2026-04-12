@@ -268,6 +268,8 @@
     cursor: pointer;
     transition: border-color .15s, background .15s;
     position: relative;
+    overflow: hidden;
+    min-width: 0;
   }
 
   .task-card:hover { border-color: var(--accent3); background: var(--surface2); }
@@ -304,6 +306,8 @@
     gap: 8px;
     align-items: flex-start;
     flex-wrap: wrap;
+    overflow: hidden;
+    max-width: 100%;
   }
 
   .pair-wrap {
@@ -320,7 +324,8 @@
     gap: 1px;
     background: #222;
     border: 1px solid #333;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
   .arc-cell {
@@ -459,6 +464,7 @@
     background: #ffffff08;
     color: var(--muted);
     border-color: var(--border);
+    font-style: italic;
   }
 
   .step-sep {
@@ -467,7 +473,7 @@
     align-self: center;
   }
 
-  .program-badge {
+    .program-badge {
     display: inline-block;
     background: #6aaeff15;
     color: var(--accent3);
@@ -934,8 +940,11 @@ function filterTasks() {
   });
 }
 
-// ── modal ──────────────────────────────────────────────────────────────────
+// ── modal ──────────────────────────────────────────────────────────────────────────
+const FALLBACK_STEPS = new Set(['echo_input','rotate_180','reflect_v','identity']);
+
 function renderModalGrids(taskData, task) {
+  // train pairs
   const trainEl = document.getElementById('modal-train');
   trainEl.innerHTML = '';
   (taskData.train ?? []).forEach((p, i) => {
@@ -955,6 +964,7 @@ function renderModalGrids(taskData, task) {
     trainEl.appendChild(block);
   });
 
+  // test inputs
   const testEl = document.getElementById('modal-test-input');
   testEl.innerHTML = '';
   (taskData.test_inputs ?? []).forEach((inp, i) => {
@@ -966,6 +976,7 @@ function renderModalGrids(taskData, task) {
     testEl.appendChild(block);
   });
 
+  // guesses (pass@2) — side by side, skip duplicates
   const guesses = task.guesses ?? [];
   const guessSection = document.getElementById('modal-guesses-section');
   const displayEl = document.getElementById('modal-guess-display');
@@ -991,42 +1002,37 @@ function renderModalGrids(taskData, task) {
     displayEl.appendChild(row);
   }
 
+  // DSL steps — always shown, one row per guess
+  // fallback step names are italicised to distinguish from real DSL programs
   const steps = task.steps ?? [];
   const stepsEl = document.getElementById('modal-steps');
   const stepsSection = document.getElementById('modal-steps-section');
   stepsEl.innerHTML = '';
-  const hasSteps = steps.some(s => s != null);
-  stepsSection.style.display = hasSteps ? 'block' : 'none';
-  if (hasSteps) {
-    steps.forEach((s, i) => {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap';
-      const gl = document.createElement('span');
-      gl.style.cssText = 'font-size:10px;color:var(--muted);min-width:22px';
-      gl.textContent = `G${i + 1}:`;
-      wrap.appendChild(gl);
-      if (s) {
-        s.split(' → ').forEach((step, si) => {
-          if (si > 0) {
-            const sep = document.createElement('span');
-            sep.className = 'step-sep';
-            sep.textContent = '→';
-            wrap.appendChild(sep);
-          }
-          const badge = document.createElement('span');
-          badge.className = 'step-badge';
-          badge.textContent = step.trim();
-          wrap.appendChild(badge);
-        });
-      } else {
+  stepsSection.style.display = steps.length > 0 ? 'block' : 'none';
+  steps.forEach((s, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap';
+    const gl = document.createElement('span');
+    gl.style.cssText = 'font-size:10px;color:var(--muted);min-width:22px';
+    gl.textContent = `G${i + 1}:`;
+    wrap.appendChild(gl);
+    if (s) {
+      const isFallback = FALLBACK_STEPS.has(s.trim());
+      s.split(' → ').forEach((step, si) => {
+        if (si > 0) {
+          const sep = document.createElement('span');
+          sep.className = 'step-sep';
+          sep.textContent = '→';
+          wrap.appendChild(sep);
+        }
         const badge = document.createElement('span');
-        badge.className = 'step-badge fallback';
-        badge.textContent = 'fallback';
+        badge.className = 'step-badge' + (isFallback ? ' fallback' : '');
+        badge.textContent = step.trim();
         wrap.appendChild(badge);
-      }
-      stepsEl.appendChild(wrap);
-    });
-  }
+      });
+    }
+    stepsEl.appendChild(wrap);
+  });
 }
 
 function openModal(task) {
