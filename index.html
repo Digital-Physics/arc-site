@@ -446,46 +446,6 @@
     margin-top: 4px;
   }
 
-  /* DSL steps */
-  .steps-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 10px;
-  }
-
-  .step-badge {
-    background: #6aaeff12;
-    color: var(--accent3);
-    border: 1px solid #6aaeff28;
-    border-radius: 4px;
-    padding: 3px 9px;
-    font-size: 11px;
-    font-family: var(--mono);
-  }
-
-  .step-badge.fallback {
-    background: #ffffff08;
-    color: var(--muted);
-    border-color: var(--border);
-  }
-
-  .step-sep {
-    color: var(--muted);
-    font-size: 11px;
-    align-self: center;
-  }
-
-  .card-program {
-    font-size: 10px;
-    color: var(--accent3);
-    margin-top: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-family: var(--mono);
-  }
-
   /* ── loading / empty ── */
   .empty {
     text-align: center;
@@ -617,10 +577,6 @@
       <div class="modal-section-title">Jon's Algorithm (pass@2)</div>
       <div class="guess-tabs" id="guess-tabs"></div>
       <div id="modal-guess-display"></div>
-    </div>
-    <div id="modal-steps-section" style="margin-top:16px">
-      <div class="modal-section-title">DSL steps</div>
-      <div class="steps-row" id="modal-steps"></div>
     </div>
   </div>
 </div>
@@ -935,7 +891,7 @@ function filterTasks() {
   });
 }
 
-// ── modal ──────────────────────────────────────────────────────────────────────────
+// ── modal ──────────────────────────────────────────────────────────────────
 function renderModalGrids(taskData, task) {
   // train pairs
   const trainEl = document.getElementById('modal-train');
@@ -974,7 +930,6 @@ function renderModalGrids(taskData, task) {
   const guessSection = document.getElementById('modal-guesses-section');
   const displayEl = document.getElementById('modal-guess-display');
   displayEl.innerHTML = '';
-
   if (guesses.length === 0) {
     guessSection.style.display = 'none';
   } else {
@@ -996,48 +951,51 @@ function renderModalGrids(taskData, task) {
     displayEl.appendChild(row);
   }
 
-  // DSL step badges — one row per guess
+  // DSL steps — one row per guess showing step badges
   const steps = task.steps ?? [];
   const stepsEl = document.getElementById('modal-steps');
+  const stepsSection = document.getElementById('modal-steps-section');
   stepsEl.innerHTML = '';
   const hasSteps = steps.some(s => s != null);
-  if (hasSteps) {
-    steps.forEach((s, i) => {
-      const guessWrap = document.createElement('div');
-      guessWrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap';
-      const guessLabel = document.createElement('span');
-      guessLabel.style.cssText = 'font-size:10px;color:var(--muted);min-width:20px';
-      guessLabel.textContent = `G${i + 1}:`;
-      guessWrap.appendChild(guessLabel);
-      if (s) {
-        s.split(' → ').forEach((step, si) => {
-          if (si > 0) {
-            const arr = document.createElement('span');
-            arr.className = 'step-sep';
-            arr.textContent = '→';
-            guessWrap.appendChild(arr);
-          }
-          const badge = document.createElement('span');
-          badge.className = 'step-badge';
-          badge.textContent = step.trim();
-          guessWrap.appendChild(badge);
-        });
-      } else {
-        const badge = document.createElement('span');
-        badge.className = 'step-badge fallback';
-        badge.textContent = 'fallback';
-        guessWrap.appendChild(badge);
-      }
-      stepsEl.appendChild(guessWrap);
-    });
+  if (!hasSteps) {
+    stepsSection.style.display = 'none';
+    return;
   }
+  stepsSection.style.display = 'block';
+  steps.forEach((s, i) => {
+    const guessWrap = document.createElement('div');
+    guessWrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap';
+    const gl = document.createElement('span');
+    gl.style.cssText = 'font-size:10px;color:var(--muted);min-width:22px';
+    gl.textContent = `G${i + 1}:`;
+    guessWrap.appendChild(gl);
+    if (s) {
+      s.split(' → ').forEach((step, si) => {
+        if (si > 0) {
+          const sep = document.createElement('span');
+          sep.className = 'step-sep';
+          sep.textContent = '→';
+          guessWrap.appendChild(sep);
+        }
+        const badge = document.createElement('span');
+        badge.className = 'step-badge';
+        badge.textContent = step.trim();
+        guessWrap.appendChild(badge);
+      });
+    } else {
+      const badge = document.createElement('span');
+      badge.className = 'step-badge fallback';
+      badge.textContent = 'fallback';
+      guessWrap.appendChild(badge);
+    }
+    stepsEl.appendChild(guessWrap);
+  });
 }
 
 function openModal(task) {
-  // open modal immediately with loading state
   document.getElementById('modal-title').textContent = task.id;
   const meta = [];
-  meta.push(`status: <span style="color:${task.status==='solved'?'var(--accent)'  :'var(--muted)'}">${task.status}</span>`);
+  meta.push(`status: <span style="color:${task.status==='solved'?'var(--accent)':'var(--muted)'}">${task.status}</span>`);
   if (task.program) meta.push(`program: <span class="program-badge">${task.program}</span>`);
   if (task.first_solved) meta.push(`first solved: ${task.first_solved}`);
   document.getElementById('modal-meta').innerHTML = meta.join('<span style="color:var(--border)"> · </span>');
@@ -1046,6 +1004,7 @@ function openModal(task) {
   document.getElementById('modal-guess-display').innerHTML = '';
   document.getElementById('modal-steps').innerHTML = '';
   document.getElementById('modal-guesses-section').style.display = 'none';
+  document.getElementById('modal-steps-section').style.display = 'none';
   document.getElementById('modal-bg').classList.add('open');
   document.body.style.overflow = 'hidden';
 
