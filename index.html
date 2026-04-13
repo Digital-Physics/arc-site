@@ -712,7 +712,7 @@ function renderLeaderboard() {
   // build rows including "You" entry
   const rows = [...LEADERBOARD];
   if (yourScore !== null) {
-    rows.push({ name: "Jon Khanlian's Algorithm", score: parseFloat(yourScore.toFixed(2)), note: 'latest run', you: true });
+    rows.push({ name: "Jon's Algorithm", score: parseFloat(yourScore.toFixed(2)), note: 'latest run', you: true });
     rows.sort((a, b) => b.score - a.score);
   }
 
@@ -974,8 +974,11 @@ function renderModalGrids(taskData, task) {
   });
 
   // guesses (pass@2) — side by side; DSL steps shown next to each image
-  const guesses = task.guesses ?? [];
-  const steps   = task.steps   ?? [];
+    //   const guesses = task.guesses ?? [];
+    //   const steps   = task.steps   ?? [];
+    // NEW
+  const allGuesses = task.guesses ?? [];   // allGuesses[testN][attemptN]
+  const allSteps   = task.steps   ?? [];   // allSteps[testN][attemptN]
   const guessSection = document.getElementById('modal-guesses-section');
   const displayEl    = document.getElementById('modal-guess-display');
   displayEl.innerHTML = '';
@@ -983,31 +986,98 @@ function renderModalGrids(taskData, task) {
   document.getElementById('modal-steps-section').style.display = 'none';
   document.getElementById('modal-steps').innerHTML = '';
 
-  if (guesses.length === 0) {
-    guessSection.style.display = 'none';
-  } else {
-    guessSection.style.display = 'block';
+//   if (guesses.length === 0) {
+//     guessSection.style.display = 'none';
+//   } else {
+//     guessSection.style.display = 'block';
+//     const row = document.createElement('div');
+//     row.className = 'guesses-row';
+//     guesses.forEach((g, i) => {
+//       if (i > 0 && JSON.stringify(g) === JSON.stringify(guesses[i - 1])) return;
+//       const cs = cellSizeFor(g);
+
+//       const block = document.createElement('div');
+//       block.className = 'guess-block';
+
+//       // label
+//       const label = document.createElement('div');
+//       label.className = `guess-label${i === 1 ? ' guess-2' : ''}`;
+//       label.textContent = `Guess ${i + 1}`;
+//       block.appendChild(label);
+
+//       // inner row: grid left, steps right
+//       const inner = document.createElement('div');
+//       inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
+//       inner.appendChild(makeGrid(g, cs));
+
+//       const s = steps[i];
+//       if (s) {
+//         const isFallback = FALLBACK_STEPS.has(s.trim());
+//         const stepsWrap = document.createElement('div');
+//         stepsWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;padding-top:2px';
+//         s.split(' → ').forEach((step, si) => {
+//           if (si > 0) {
+//             const sep = document.createElement('span');
+//             sep.className = 'step-sep';
+//             sep.style.cssText = 'font-size:9px;color:var(--muted);line-height:1';
+//             sep.textContent = '→';
+//             stepsWrap.appendChild(sep);
+//           }
+//           const badge = document.createElement('span');
+//           badge.className = 'step-badge' + (isFallback ? ' fallback' : '');
+//           badge.textContent = step.trim();
+//           stepsWrap.appendChild(badge);
+//         });
+//         inner.appendChild(stepsWrap);
+//       }
+
+//       block.appendChild(inner);
+//       row.appendChild(block);
+//     });
+//     displayEl.appendChild(row);
+//   }
+// }
+if (allGuesses.length === 0) {
+  guessSection.style.display = 'none';
+} else {
+  guessSection.style.display = 'block';
+
+  allGuesses.forEach((testGuesses, testIdx) => {
+    // Skip if this test input produced no guesses
+    if (!testGuesses || testGuesses.length === 0) return;
+
+    // Section label when there are multiple test inputs
+    if (allGuesses.length > 1) {
+      const testLabel = document.createElement('div');
+      testLabel.className = 'modal-section-title';
+      testLabel.style.marginTop = testIdx === 0 ? '0' : '20px';
+      testLabel.textContent = `test ${testIdx} guesses`;
+      displayEl.appendChild(testLabel);
+    }
+
     const row = document.createElement('div');
     row.className = 'guesses-row';
-    guesses.forEach((g, i) => {
-      if (i > 0 && JSON.stringify(g) === JSON.stringify(guesses[i - 1])) return;
-      const cs = cellSizeFor(g);
 
+    testGuesses.forEach((g, attemptIdx) => {
+      // Skip duplicate second guess (identical to first)
+      if (attemptIdx > 0 &&
+          JSON.stringify(g) === JSON.stringify(testGuesses[attemptIdx - 1])) return;
+
+      const cs = cellSizeFor(g);
       const block = document.createElement('div');
       block.className = 'guess-block';
 
-      // label
       const label = document.createElement('div');
-      label.className = `guess-label${i === 1 ? ' guess-2' : ''}`;
-      label.textContent = `Guess ${i + 1}`;
+      label.className = `guess-label${attemptIdx === 1 ? ' guess-2' : ''}`;
+      label.textContent = `Guess ${attemptIdx + 1}`;
       block.appendChild(label);
 
-      // inner row: grid left, steps right
       const inner = document.createElement('div');
       inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
       inner.appendChild(makeGrid(g, cs));
 
-      const s = steps[i];
+      // Steps for this attempt
+      const s = allSteps[testIdx]?.[attemptIdx];
       if (s) {
         const isFallback = FALLBACK_STEPS.has(s.trim());
         const stepsWrap = document.createElement('div');
@@ -1031,8 +1101,9 @@ function renderModalGrids(taskData, task) {
       block.appendChild(inner);
       row.appendChild(block);
     });
+
     displayEl.appendChild(row);
-  }
+  });
 }
 
 function openModal(task) {
