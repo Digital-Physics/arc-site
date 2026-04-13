@@ -925,14 +925,11 @@ function filterTasks() {
     card.dataset.taskId = task.id;
     card.onclick = () => openModal(task);
 
-    const progLine = task.program
-      ? `<div class="card-program">${task.program}</div>` : '';
     card.innerHTML = `
       <div class="task-card-header">
         <span class="task-id">${task.id}</span>
         <span class="task-badge ${task.status}">${task.status}</span>
       </div>
-      ${progLine}
       <div class="task-preview" style="min-height:40px"></div>
     `;
     grid.appendChild(card);
@@ -976,11 +973,16 @@ function renderModalGrids(taskData, task) {
     testEl.appendChild(block);
   });
 
-  // guesses (pass@2) — side by side, skip duplicates
+  // guesses (pass@2) — side by side; DSL steps shown next to each image
   const guesses = task.guesses ?? [];
+  const steps   = task.steps   ?? [];
   const guessSection = document.getElementById('modal-guesses-section');
-  const displayEl = document.getElementById('modal-guess-display');
+  const displayEl    = document.getElementById('modal-guess-display');
   displayEl.innerHTML = '';
+  // steps section no longer used separately
+  document.getElementById('modal-steps-section').style.display = 'none';
+  document.getElementById('modal-steps').innerHTML = '';
+
   if (guesses.length === 0) {
     guessSection.style.display = 'none';
   } else {
@@ -990,49 +992,47 @@ function renderModalGrids(taskData, task) {
     guesses.forEach((g, i) => {
       if (i > 0 && JSON.stringify(g) === JSON.stringify(guesses[i - 1])) return;
       const cs = cellSizeFor(g);
+
       const block = document.createElement('div');
       block.className = 'guess-block';
+
+      // label
       const label = document.createElement('div');
       label.className = `guess-label${i === 1 ? ' guess-2' : ''}`;
       label.textContent = `Guess ${i + 1}`;
       block.appendChild(label);
-      block.appendChild(makeGrid(g, cs));
+
+      // inner row: grid left, steps right
+      const inner = document.createElement('div');
+      inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
+      inner.appendChild(makeGrid(g, cs));
+
+      const s = steps[i];
+      if (s) {
+        const isFallback = FALLBACK_STEPS.has(s.trim());
+        const stepsWrap = document.createElement('div');
+        stepsWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;padding-top:2px';
+        s.split(' → ').forEach((step, si) => {
+          if (si > 0) {
+            const sep = document.createElement('span');
+            sep.className = 'step-sep';
+            sep.style.cssText = 'font-size:9px;color:var(--muted);line-height:1';
+            sep.textContent = '→';
+            stepsWrap.appendChild(sep);
+          }
+          const badge = document.createElement('span');
+          badge.className = 'step-badge' + (isFallback ? ' fallback' : '');
+          badge.textContent = step.trim();
+          stepsWrap.appendChild(badge);
+        });
+        inner.appendChild(stepsWrap);
+      }
+
+      block.appendChild(inner);
       row.appendChild(block);
     });
     displayEl.appendChild(row);
   }
-
-  // DSL steps — always shown, one row per guess
-  // fallback step names are italicised to distinguish from real DSL programs
-  const steps = task.steps ?? [];
-  const stepsEl = document.getElementById('modal-steps');
-  const stepsSection = document.getElementById('modal-steps-section');
-  stepsEl.innerHTML = '';
-  stepsSection.style.display = steps.length > 0 ? 'block' : 'none';
-  steps.forEach((s, i) => {
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap';
-    const gl = document.createElement('span');
-    gl.style.cssText = 'font-size:10px;color:var(--muted);min-width:22px';
-    gl.textContent = `G${i + 1}:`;
-    wrap.appendChild(gl);
-    if (s) {
-      const isFallback = FALLBACK_STEPS.has(s.trim());
-      s.split(' → ').forEach((step, si) => {
-        if (si > 0) {
-          const sep = document.createElement('span');
-          sep.className = 'step-sep';
-          sep.textContent = '→';
-          wrap.appendChild(sep);
-        }
-        const badge = document.createElement('span');
-        badge.className = 'step-badge' + (isFallback ? ' fallback' : '');
-        badge.textContent = step.trim();
-        wrap.appendChild(badge);
-      });
-    }
-    stepsEl.appendChild(wrap);
-  });
 }
 
 function openModal(task) {
