@@ -1,726 +1,878 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARC-AGI-2 Solver</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-  /* ── reset & tokens ── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg:        #0a0a0f;
-    --surface:   #12121a;
-    --surface2:  #1c1c28;
-    --border:    #2a2a3a;
-    --text:      #e8e8f0;
-    --muted:     #6b6b88;
-    --accent:    #7fff6a;
-    --accent2:   #ff6a6a;
-    --accent3:   #6aaeff;
-
-    /* ARC palette */
-    --c0:#000000; --c1:#0074D9; --c2:#FF4136; --c3:#2ECC40;
-    --c4:#FFDC00; --c5:#AAAAAA; --c6:#F012BE; --c7:#FF851B;
-    --c8:#7FDBFF; --c9:#870C25;
-
-    --mono: 'Space Mono', monospace;
-    --display: 'Syne', sans-serif;
-    --radius: 6px;
-  }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    line-height: 1.6;
-    min-height: 100vh;
-  }
-
-  /* ── layout ── */
-  .site-header {
-    border-bottom: 1px solid var(--border);
-    padding: 28px 40px;
-    display: flex;
-    align-items: baseline;
-    gap: 24px;
-    position: sticky;
-    top: 0;
-    background: var(--bg);
-    z-index: 100;
-  }
-
-  .site-header h1 {
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: 1.3rem;
-    letter-spacing: -0.02em;
-    color: var(--accent);
-  }
-
-  .site-header .subtitle {
-    color: var(--muted);
-    font-size: 11px;
-  }
-
-  nav {
-    margin-left: auto;
-    display: flex;
-    gap: 4px;
-  }
-
-  nav button {
-    background: none;
-    border: 1px solid transparent;
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 5px 12px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all .15s;
-  }
-
-  nav button:hover, nav button.active {
-    border-color: var(--border);
-    color: var(--text);
-    background: var(--surface);
-  }
-
-  nav button.active { color: var(--accent); border-color: var(--accent); }
-
-  main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 40px;
-  }
-
-  .view { display: none; }
-  .view.active { display: block; }
-
-  /* ── score hero ── */
-  .hero {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 40px;
-    align-items: center;
-    margin-bottom: 48px;
-    padding-bottom: 48px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .big-score {
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: clamp(4rem, 10vw, 7rem);
-    line-height: 1;
-    color: var(--accent);
-    letter-spacing: -0.04em;
-  }
-
-  .big-score span {
-    font-size: 0.4em;
-    color: var(--muted);
-    font-weight: 400;
-  }
-
-  .hero-meta { display: flex; flex-direction: column; gap: 12px; }
-
-  .hero-meta .label {
-    font-size: 11px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .1em;
-  }
-
-  .hero-meta .value {
-    font-family: var(--display);
-    font-size: 1.1rem;
-    font-weight: 600;
-  }
-
-  .stat-row { display: flex; gap: 40px; flex-wrap: wrap; }
-  .stat { display: flex; flex-direction: column; gap: 2px; }
-
-  /* ── progress chart ── */
-  .chart-wrap {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    margin-bottom: 32px;
-  }
-
-  .chart-title {
-    font-family: var(--display);
-    font-weight: 600;
-    font-size: .85rem;
-    margin-bottom: 20px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .08em;
-  }
-
-  canvas#chart { width: 100%; height: 200px; display: block; }
-
-  /* ── context bar (leaderboard) ── */
-  .context-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 48px;
-    font-size: 12px;
-  }
-
-  .context-table th {
-    text-align: left;
-    padding: 8px 12px;
-    color: var(--muted);
-    font-weight: 400;
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-  }
-
-  .context-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .context-table tr.you td { color: var(--accent); }
-  .context-table tr.you td:first-child::before {
-    content: '→ ';
-  }
-
-  .bar-cell { display: flex; align-items: center; gap: 10px; }
-  .bar-bg {
-    flex: 1;
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .bar-fg {
-    height: 100%;
-    background: var(--accent3);
-    border-radius: 2px;
-    transition: width .6s ease;
-  }
-  .bar-fg.you { background: var(--accent); }
-
-  /* ── task browser ── */
-  .toolbar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .toolbar input {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 7px 12px;
-    border-radius: var(--radius);
-    width: 220px;
-    outline: none;
-    transition: border-color .15s;
-  }
-
-  .toolbar input:focus { border-color: var(--accent); }
-
-  .filter-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 7px 14px;
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all .15s;
-  }
-
-  .filter-btn:hover { color: var(--text); border-color: var(--border); }
-  .filter-btn.active { color: var(--accent); border-color: var(--accent); background: #7fff6a0f; }
-
-  .task-count { color: var(--muted); font-size: 11px; margin-left: auto; }
-
-  .task-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
-  }
-
-  .task-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
-    position: relative;
-    overflow: hidden;
-    min-width: 0;
-  }
-
-  .task-card:hover { border-color: var(--accent3); background: var(--surface2); }
-  .task-card.solved { border-left: 3px solid var(--accent); }
-  .task-card.unsolved { border-left: 3px solid var(--border); }
-
-  .task-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-
-  .task-id {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: .04em;
-  }
-
-  .task-badge {
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 3px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-  }
-
-  .task-badge.solved { background: #7fff6a15; color: var(--accent); }
-  .task-badge.unsolved { background: #ffffff08; color: var(--muted); }
-
-  .task-preview {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    overflow: hidden;
-    max-width: 100%;
-  }
-
-  .pair-wrap {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-  }
-
-  .pair-arrow { color: var(--muted); font-size: 10px; }
-
-  /* ── arc grid rendering ── */
-  .arc-grid {
-    display: inline-grid;
-    gap: 1px;
-    background: #222;
-    border: 1px solid #333;
-    flex-shrink: 1;
-    min-width: 0;
-  }
-
-  .arc-cell {
-    width: var(--cell-size, 8px);
-    height: var(--cell-size, 8px);
-  }
-
-  /* ── task detail modal ── */
-  .modal-bg {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: #0009;
-    z-index: 200;
-    overflow-y: auto;
-    backdrop-filter: blur(4px);
-  }
-
-  .modal-bg.open { display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px; }
-
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 32px;
-    max-width: 900px;
-    width: 100%;
-    position: relative;
-    animation: slideUp .2s ease;
-  }
-
-  @keyframes slideUp {
-    from { transform: translateY(12px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
-  }
-
-  .modal-close {
-    position: absolute;
-    top: 16px; right: 16px;
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: var(--radius);
-    cursor: pointer;
-  }
-
-  .modal-close:hover { color: var(--text); border-color: var(--text); }
-
-  .modal h2 {
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: 1.1rem;
-    margin-bottom: 6px;
-  }
-
-  .modal-meta {
-    font-size: 11px;
-    color: var(--muted);
-    margin-bottom: 24px;
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-
-  .modal-section-title {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    color: var(--muted);
-    margin-bottom: 12px;
-    margin-top: 24px;
-  }
-
-  .pairs-row {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-
-  .pair-block { display: flex; flex-direction: column; gap: 6px; align-items: center; }
-  .pair-label { font-size: 10px; color: var(--muted); text-align: center; }
-
-  .guess-tabs {
-    display: none; /* replaced by side-by-side layout */
-  }
-
-  .guesses-row {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-
-  .guess-block {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .guess-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    color: var(--accent3);
-  }
-
-  .guess-label.guess-2 { color: var(--accent2); }
-
-  .guess-tab { display: none; /* replaced by side-by-side layout */ }
-
-  .card-program {
-    font-size: 10px;
-    color: var(--accent3);
-    margin-top: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-family: var(--mono);
-  }
-
-  .step-badge {
-    background: #6aaeff12;
-    color: var(--accent3);
-    border: 1px solid #6aaeff28;
-    border-radius: 4px;
-    padding: 3px 9px;
-    font-size: 11px;
-    font-family: var(--mono);
-  }
-
-  .step-badge.fallback {
-    background: #ffffff08;
-    color: var(--muted);
-    border-color: var(--border);
-    font-style: italic;
-  }
-
-  .step-sep {
-    color: var(--muted);
-    font-size: 11px;
-    align-self: center;
-  }
-
-    .program-badge {
-    display: inline-block;
-    background: #6aaeff15;
-    color: var(--accent3);
-    border: 1px solid #6aaeff30;
-    border-radius: 4px;
-    padding: 4px 10px;
-    font-size: 11px;
-    margin-top: 4px;
-  }
-
-  /* ── loading / empty ── */
-  .empty {
-    text-align: center;
-    padding: 80px 20px;
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .loading-pulse {
-    display: inline-block;
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-
-  @keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }
-
-  /* ── footer ── */
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 24px 40px;
-    color: var(--muted);
-    font-size: 11px;
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  footer a { color: var(--muted); text-decoration: none; }
-  footer a:hover { color: var(--text); }
-
-  /* ── responsive ── */
-  @media (max-width: 600px) {
-    .site-header { padding: 16px 20px; flex-wrap: wrap; }
-    main { padding: 24px 20px; }
-    .hero { grid-template-columns: 1fr; gap: 20px; }
-    .stat-row { gap: 20px; }
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARC-AGI-2 Solver</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ── reset & tokens ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1c1c28;
+            --border: #2a2a3a;
+            --text: #e8e8f0;
+            --muted: #6b6b88;
+            --accent: #7fff6a;
+            --accent2: #ff6a6a;
+            --accent3: #6aaeff;
+
+            /* ARC palette */
+            --c0: #000000;
+            --c1: #0074D9;
+            --c2: #FF4136;
+            --c3: #2ECC40;
+            --c4: #FFDC00;
+            --c5: #AAAAAA;
+            --c6: #F012BE;
+            --c7: #FF851B;
+            --c8: #7FDBFF;
+            --c9: #870C25;
+
+            --mono: 'Space Mono', monospace;
+            --display: 'Syne', sans-serif;
+            --radius: 6px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ── layout ── */
+        .site-header {
+            border-bottom: 1px solid var(--border);
+            padding: 28px 40px;
+            display: flex;
+            align-items: baseline;
+            gap: 24px;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+        }
+
+        .site-header h1 {
+            font-family: var(--display);
+            font-weight: 800;
+            font-size: 1.3rem;
+            letter-spacing: -0.02em;
+            color: var(--accent);
+        }
+
+        .site-header .subtitle {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        nav {
+            margin-left: auto;
+            display: flex;
+            gap: 4px;
+        }
+
+        nav button {
+            background: none;
+            border: 1px solid transparent;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 5px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        nav button:hover,
+        nav button.active {
+            border-color: var(--border);
+            color: var(--text);
+            background: var(--surface);
+        }
+
+        nav button.active {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* ── score hero ── */
+        .hero {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 40px;
+            align-items: center;
+            margin-bottom: 48px;
+            padding-bottom: 48px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .big-score {
+            font-family: var(--display);
+            font-weight: 800;
+            font-size: clamp(4rem, 10vw, 7rem);
+            line-height: 1;
+            color: var(--accent);
+            letter-spacing: -0.04em;
+        }
+
+        .big-score span {
+            font-size: 0.4em;
+            color: var(--muted);
+            font-weight: 400;
+        }
+
+        .hero-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .hero-meta .label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+
+        .hero-meta .value {
+            font-family: var(--display);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .stat-row {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        /* ── progress chart ── */
+        .chart-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .chart-title {
+            font-family: var(--display);
+            font-weight: 600;
+            font-size: .85rem;
+            margin-bottom: 20px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        canvas#chart {
+            width: 100%;
+            height: 200px;
+            display: block;
+        }
+
+        /* ── context bar (leaderboard) ── */
+        .context-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 48px;
+            font-size: 12px;
+        }
+
+        .context-table th {
+            text-align: left;
+            padding: 8px 12px;
+            color: var(--muted);
+            font-weight: 400;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .context-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .context-table tr.you td {
+            color: var(--accent);
+        }
+
+        .context-table tr.you td:first-child::before {
+            content: '→ ';
+        }
+
+        .bar-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bar-bg {
+            flex: 1;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .bar-fg {
+            height: 100%;
+            background: var(--accent3);
+            border-radius: 2px;
+            transition: width .6s ease;
+        }
+
+        .bar-fg.you {
+            background: var(--accent);
+        }
+
+        /* ── task browser ── */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .toolbar input {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 7px 12px;
+            border-radius: var(--radius);
+            width: 220px;
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        .toolbar input:focus {
+            border-color: var(--accent);
+        }
+
+        .filter-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 7px 14px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .filter-btn:hover {
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .filter-btn.active {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: #7fff6a0f;
+        }
+
+        .task-count {
+            color: var(--muted);
+            font-size: 11px;
+            margin-left: auto;
+        }
+
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .task-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            cursor: pointer;
+            transition: border-color .15s, background .15s;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .task-card:hover {
+            border-color: var(--accent3);
+            background: var(--surface2);
+        }
+
+        .task-card.solved {
+            border-left: 3px solid var(--accent);
+        }
+
+        .task-card.unsolved {
+            border-left: 3px solid var(--border);
+        }
+
+        .task-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .task-id {
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: .04em;
+        }
+
+        .task-badge {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .task-badge.solved {
+            background: #7fff6a15;
+            color: var(--accent);
+        }
+
+        .task-badge.unsolved {
+            background: #ffffff08;
+            color: var(--muted);
+        }
+
+        .task-preview {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            overflow: hidden;
+            max-width: 100%;
+        }
+
+        .pair-wrap {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .pair-arrow {
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        /* ── arc grid rendering ── */
+        .arc-grid {
+            display: inline-grid;
+            gap: 1px;
+            background: #222;
+            border: 1px solid #333;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .arc-cell {
+            width: var(--cell-size, 8px);
+            height: var(--cell-size, 8px);
+        }
+
+        /* ── task detail modal ── */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #0009;
+            z-index: 200;
+            overflow-y: auto;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-bg.open {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 32px;
+            max-width: 900px;
+            width: 100%;
+            position: relative;
+            animation: slideUp .2s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(12px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: var(--text);
+            border-color: var(--text);
+        }
+
+        .modal h2 {
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+
+        .modal-meta {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 24px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .modal-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--muted);
+            margin-bottom: 12px;
+            margin-top: 24px;
+        }
+
+        .pairs-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .pair-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .pair-label {
+            font-size: 10px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .guess-tabs {
+            display: none;
+            /* replaced by side-by-side layout */
+        }
+
+        .guesses-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .guess-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .guess-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--accent3);
+        }
+
+        .guess-label.guess-2 {
+            color: var(--accent2);
+        }
+
+        .guess-tab {
+            display: none;
+            /* replaced by side-by-side layout */
+        }
+
+        .card-program {
+            font-size: 10px;
+            color: var(--accent3);
+            margin-top: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: var(--mono);
+        }
+
+        .step-badge {
+            background: #6aaeff12;
+            color: var(--accent3);
+            border: 1px solid #6aaeff28;
+            border-radius: 4px;
+            padding: 3px 9px;
+            font-size: 11px;
+            font-family: var(--mono);
+        }
+
+        .step-badge.fallback {
+            background: #ffffff08;
+            color: var(--muted);
+            border-color: var(--border);
+            font-style: italic;
+        }
+
+        .step-sep {
+            color: var(--muted);
+            font-size: 11px;
+            align-self: center;
+        }
+
+        .program-badge {
+            display: inline-block;
+            background: #6aaeff15;
+            color: var(--accent3);
+            border: 1px solid #6aaeff30;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        /* ── loading / empty ── */
+        .empty {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .loading-pulse {
+            display: inline-block;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: .3
+            }
+
+            50% {
+                opacity: 1
+            }
+        }
+
+        /* ── footer ── */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 24px 40px;
+            color: var(--muted);
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        footer a {
+            color: var(--muted);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--text);
+        }
+
+        /* ── responsive ── */
+        @media (max-width: 600px) {
+            .site-header {
+                padding: 16px 20px;
+                flex-wrap: wrap;
+            }
+
+            main {
+                padding: 24px 20px;
+            }
+
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .stat-row {
+                gap: 20px;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-<header class="site-header">
-  <h1>ARC-AGI-2</h1>
-  <span class="subtitle">solver progress</span>
-  <nav>
-    <button class="active" onclick="showView('progress', this)">Progress</button>
-    <button onclick="showView('tasks', this)">Tasks</button>
-  </nav>
-</header>
+    <header class="site-header">
+        <h1>ARC-AGI-2</h1>
+        <span class="subtitle">solver progress</span>
+        <nav>
+            <button class="active" onclick="showView('progress', this)">Progress</button>
+            <button onclick="showView('tasks', this)">Tasks</button>
+        </nav>
+    </header>
 
-<main>
-  <!-- ── PROGRESS VIEW ── -->
-  <div id="view-progress" class="view active">
+    <main>
+        <!-- ── PROGRESS VIEW ── -->
+        <div id="view-progress" class="view active">
 
-    <div class="hero">
-      <div>
-        <div class="big-score" id="big-score">
-          —<span>/ 1000</span>
+            <div class="hero">
+                <div>
+                    <div class="big-score" id="big-score">
+                        —<span>/ 1000</span>
+                    </div>
+                    <div style="color:var(--muted);font-size:11px;margin-top:6px" id="pct-label">loading…</div>
+                </div>
+                <div class="hero-meta">
+                    <div class="stat-row" id="stat-row">
+                        <div class="stat">
+                            <div class="label">Last run</div>
+                            <div class="value" id="stat-date">—</div>
+                        </div>
+                        <div class="stat">
+                            <div class="label">Pass@2</div>
+                            <div class="value" id="stat-pass2">—</div>
+                        </div>
+                        <div class="stat">
+                            <div class="label">Total tasks</div>
+                            <div class="value" id="stat-total">1000</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <div class="chart-title">Score over time</div>
+                <canvas id="chart"></canvas>
+            </div>
+
+            <div class="chart-title" style="margin-bottom:16px">Context — leaderboard</div>
+            <table class="context-table">
+                <thead>
+                    <tr>
+                        <th>System</th>
+                        <th>Score</th>
+                        <th style="width:40%">Accuracy</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+
         </div>
-        <div style="color:var(--muted);font-size:11px;margin-top:6px" id="pct-label">loading…</div>
-      </div>
-      <div class="hero-meta">
-        <div class="stat-row" id="stat-row">
-          <div class="stat">
-            <div class="label">Last run</div>
-            <div class="value" id="stat-date">—</div>
-          </div>
-          <div class="stat">
-            <div class="label">Pass@2</div>
-            <div class="value" id="stat-pass2">—</div>
-          </div>
-          <div class="stat">
-            <div class="label">Total tasks</div>
-            <div class="value" id="stat-total">1000</div>
-          </div>
+
+        <!-- ── TASKS VIEW ── -->
+        <div id="view-tasks" class="view">
+            <div class="toolbar">
+                <input type="text" id="search-input" placeholder="search task id…" oninput="filterTasks()">
+                <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+                <button class="filter-btn" data-filter="solved" onclick="setFilter('solved',this)">Solved</button>
+                <button class="filter-btn" data-filter="unsolved" onclick="setFilter('unsolved',this)">Unsolved</button>
+                <span class="task-count" id="task-count"></span>
+            </div>
+            <div class="task-grid" id="task-grid">
+                <div class="empty"><span class="loading-pulse">loading tasks…</span></div>
+            </div>
         </div>
-      </div>
+    </main>
+
+    <!-- ── TASK DETAIL MODAL ── -->
+    <div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+        <div class="modal" id="modal-inner">
+            <button class="modal-close" onclick="closeModal()">✕ close</button>
+            <h2 id="modal-title">task</h2>
+            <div class="modal-meta" id="modal-meta"></div>
+
+            <div class="modal-section-title">Training pairs</div>
+            <div class="pairs-row" id="modal-train"></div>
+
+            <div class="modal-section-title">Test input</div>
+            <div class="pairs-row" id="modal-test-input"></div>
+
+            <div id="modal-guesses-section">
+                <div class="modal-section-title">Jon's Algorithm (pass@2)</div>
+                <div class="guess-tabs" id="guess-tabs"></div>
+                <div id="modal-guess-display"></div>
+            </div>
+            <div id="modal-steps-section" style="display:none;margin-top:16px">
+                <div class="modal-section-title">DSL steps</div>
+                <div id="modal-steps" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+        </div>
     </div>
 
-    <div class="chart-wrap">
-      <div class="chart-title">Score over time</div>
-      <canvas id="chart"></canvas>
-    </div>
+    <footer>
+        <span>ARC Prize 2026 — <a href="https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-2"
+                target="_blank">competition ↗</a></span>
+        <span id="footer-date"></span>
+    </footer>
 
-    <div class="chart-title" style="margin-bottom:16px">Context — leaderboard</div>
-    <table class="context-table">
-      <thead>
-        <tr>
-          <th>System</th>
-          <th>Score</th>
-          <th style="width:40%">Accuracy</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody id="leaderboard-body"></tbody>
-    </table>
+    <script>
+        // ── ARC color palette ──────────────────────────────────────────────────────
+        const COLORS = {
+            0: '#000000', 1: '#0074D9', 2: '#FF4136', 3: '#2ECC40',
+            4: '#FFDC00', 5: '#AAAAAA', 6: '#F012BE', 7: '#FF851B',
+            8: '#7FDBFF', 9: '#870C25'
+        };
 
-  </div>
+        const LEADERBOARD = [
+            { name: 'Human expert panel', score: 100, note: 'Every task human-solvable' },
+            { name: 'Human average', score: 60, note: 'Untrained test-takers' },
+            { name: 'Gemini 3 Pro', score: 54, note: '$30/task — not eligible' },
+            { name: 'NVARC (1st, 2025)', score: 24, note: '$0.20/task, 4×L4 GPUs' },
+            { name: 'ARChitects (2nd)', score: 16.5, note: '8×H100s' },
+            { name: 'MindsAI (3rd)', score: 12.6, note: '' },
+            { name: 'GPT-4o', score: 1.9, note: 'No fine-tuning' },
+            { name: 'Claude Sonnet', score: 1.3, note: 'No fine-tuning' },
+        ];
 
-  <!-- ── TASKS VIEW ── -->
-  <div id="view-tasks" class="view">
-    <div class="toolbar">
-      <input type="text" id="search-input" placeholder="search task id…" oninput="filterTasks()">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
-      <button class="filter-btn" data-filter="solved" onclick="setFilter('solved',this)">Solved</button>
-      <button class="filter-btn" data-filter="unsolved" onclick="setFilter('unsolved',this)">Unsolved</button>
-      <span class="task-count" id="task-count"></span>
-    </div>
-    <div class="task-grid" id="task-grid">
-      <div class="empty"><span class="loading-pulse">loading tasks…</span></div>
-    </div>
-  </div>
-</main>
+        // ── state ──────────────────────────────────────────────────────────────────
+        let snapshot = null;
+        let history = [];
+        let activeFilter = 'all';
 
-<!-- ── TASK DETAIL MODAL ── -->
-<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
-  <div class="modal" id="modal-inner">
-    <button class="modal-close" onclick="closeModal()">✕ close</button>
-    <h2 id="modal-title">task</h2>
-    <div class="modal-meta" id="modal-meta"></div>
+        // ── init ───────────────────────────────────────────────────────────────────
+        async function init() {
+            // find the latest snapshot date
+            // Convention: site/data/history.json lists dates; we load latest snapshot by date
+            try {
+                const hRes = await fetch('data/history.json');
+                if (!hRes.ok) throw new Error('no history');
+                history = await hRes.json();
+            } catch {
+                history = [];
+            }
 
-    <div class="modal-section-title">Training pairs</div>
-    <div class="pairs-row" id="modal-train"></div>
+            if (history.length > 0) {
+                const latest = history[history.length - 1].date;
+                document.getElementById('footer-date').textContent = `snapshot: ${latest}`;
+                try {
+                    const sRes = await fetch(`data/${latest}.json`);
+                    if (sRes.ok) snapshot = await sRes.json();
+                } catch { }
+            }
 
-    <div class="modal-section-title">Test input</div>
-    <div class="pairs-row" id="modal-test-input"></div>
+            renderProgress();
+            renderLeaderboard();
+            drawChart();
 
-    <div id="modal-guesses-section">
-      <div class="modal-section-title">Jon's Algorithm (pass@2)</div>
-      <div class="guess-tabs" id="guess-tabs"></div>
-      <div id="modal-guess-display"></div>
-    </div>
-    <div id="modal-steps-section" style="display:none;margin-top:16px">
-      <div class="modal-section-title">DSL steps</div>
-      <div id="modal-steps" style="display:flex;flex-direction:column;gap:8px"></div>
-    </div>
-  </div>
-</div>
+            // tasks view renders lazily when tab clicked (snapshot may be large)
+        }
 
-<footer>
-  <span>ARC Prize 2026 — <a href="https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-2" target="_blank">competition ↗</a></span>
-  <span id="footer-date"></span>
-</footer>
+        // ── view switching ─────────────────────────────────────────────────────────
+        function showView(name, btn) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById('view-' + name).classList.add('active');
+            btn.classList.add('active');
 
-<script>
-// ── ARC color palette ──────────────────────────────────────────────────────
-const COLORS = {
-  0:'#000000',1:'#0074D9',2:'#FF4136',3:'#2ECC40',
-  4:'#FFDC00',5:'#AAAAAA',6:'#F012BE',7:'#FF851B',
-  8:'#7FDBFF',9:'#870C25'
-};
+            if (name === 'tasks' && snapshot) renderTaskGrid();
+        }
 
-const LEADERBOARD = [
-  { name:'Human expert panel', score:100,  note:'Every task human-solvable' },
-  { name:'Human average',      score:60,   note:'Untrained test-takers' },
-  { name:'Gemini 3 Pro',       score:54,   note:'$30/task — not eligible' },
-  { name:'NVARC (1st, 2025)',  score:24,   note:'$0.20/task, 4×L4 GPUs' },
-  { name:'ARChitects (2nd)',   score:16.5, note:'8×H100s' },
-  { name:'MindsAI (3rd)',      score:12.6, note:'' },
-  { name:'GPT-4o',             score:1.9,  note:'No fine-tuning' },
-  { name:'Claude Sonnet',      score:1.3,  note:'No fine-tuning' },
-];
+        // ── progress view ──────────────────────────────────────────────────────────
+        function renderProgress() {
+            if (!snapshot) return;
+            const { solved, total } = snapshot.score;
+            const pct = (100 * solved / total).toFixed(1);
 
-// ── state ──────────────────────────────────────────────────────────────────
-let snapshot = null;
-let history  = [];
-let activeFilter = 'all';
+            document.getElementById('big-score').innerHTML =
+                `${solved}<span>/ ${total}</span>`;
+            document.getElementById('pct-label').textContent = `${pct}% accuracy`;
+            document.getElementById('stat-date').textContent = snapshot.date;
+            document.getElementById('stat-pass2').textContent = 'enabled';
+            document.getElementById('stat-total').textContent = total;
+        }
 
-// ── init ───────────────────────────────────────────────────────────────────
-async function init() {
-  // find the latest snapshot date
-  // Convention: site/data/history.json lists dates; we load latest snapshot by date
-  try {
-    const hRes = await fetch('data/history.json');
-    if (!hRes.ok) throw new Error('no history');
-    history = await hRes.json();
-  } catch {
-    history = [];
-  }
+        function renderLeaderboard() {
+            const yourScore = snapshot
+                ? (100 * snapshot.score.solved / snapshot.score.total)
+                : null;
 
-  if (history.length > 0) {
-    const latest = history[history.length - 1].date;
-    document.getElementById('footer-date').textContent = `snapshot: ${latest}`;
-    try {
-      const sRes = await fetch(`data/${latest}.json`);
-      if (sRes.ok) snapshot = await sRes.json();
-    } catch {}
-  }
+            // build rows including "You" entry
+            const rows = [...LEADERBOARD];
+            if (yourScore !== null) {
+                rows.push({ name: "Jon's Algorithm", score: parseFloat(yourScore.toFixed(2)), note: 'latest run', you: true });
+                rows.sort((a, b) => b.score - a.score);
+            }
 
-  renderProgress();
-  renderLeaderboard();
-  drawChart();
-
-  // tasks view renders lazily when tab clicked (snapshot may be large)
-}
-
-// ── view switching ─────────────────────────────────────────────────────────
-function showView(name, btn) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  document.getElementById('view-' + name).classList.add('active');
-  btn.classList.add('active');
-
-  if (name === 'tasks' && snapshot) renderTaskGrid();
-}
-
-// ── progress view ──────────────────────────────────────────────────────────
-function renderProgress() {
-  if (!snapshot) return;
-  const { solved, total } = snapshot.score;
-  const pct = (100 * solved / total).toFixed(1);
-
-  document.getElementById('big-score').innerHTML =
-    `${solved}<span>/ ${total}</span>`;
-  document.getElementById('pct-label').textContent = `${pct}% accuracy`;
-  document.getElementById('stat-date').textContent = snapshot.date;
-  document.getElementById('stat-pass2').textContent = 'enabled';
-  document.getElementById('stat-total').textContent = total;
-}
-
-function renderLeaderboard() {
-  const yourScore = snapshot
-    ? (100 * snapshot.score.solved / snapshot.score.total)
-    : null;
-
-  // build rows including "You" entry
-  const rows = [...LEADERBOARD];
-  if (yourScore !== null) {
-    rows.push({ name: "Jon's Algorithm", score: parseFloat(yourScore.toFixed(2)), note: 'latest run', you: true });
-    rows.sort((a, b) => b.score - a.score);
-  }
-
-  const tbody = document.getElementById('leaderboard-body');
-  tbody.innerHTML = rows.map(r => {
-    const isYou = r.you;
-    const barClass = isYou ? 'bar-fg you' : 'bar-fg';
-    return `<tr class="${isYou ? 'you' : ''}">
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = rows.map(r => {
+                const isYou = r.you;
+                const barClass = isYou ? 'bar-fg you' : 'bar-fg';
+                return `<tr class="${isYou ? 'you' : ''}">
       <td>${r.name}</td>
       <td>${r.score}%</td>
       <td>
@@ -731,422 +883,424 @@ function renderLeaderboard() {
       </td>
       <td style="color:var(--muted);font-size:11px">${r.note}</td>
     </tr>`;
-  }).join('');
-}
+            }).join('');
+        }
 
-// ── chart ──────────────────────────────────────────────────────────────────
-function drawChart() {
-  const canvas = document.getElementById('chart');
-  const dpr    = window.devicePixelRatio || 1;
-  const W      = canvas.offsetWidth  || 800;
-  const H      = canvas.offsetHeight || 200;
-  canvas.width  = W * dpr;
-  canvas.height = H * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
+        // ── chart ──────────────────────────────────────────────────────────────────
+        function drawChart() {
+            const canvas = document.getElementById('chart');
+            const dpr = window.devicePixelRatio || 1;
+            const W = canvas.offsetWidth || 800;
+            const H = canvas.offsetHeight || 200;
+            canvas.width = W * dpr;
+            canvas.height = H * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
 
-  if (history.length === 0) {
-    ctx.fillStyle = '#6b6b88';
-    ctx.font = '12px Space Mono, monospace';
-    ctx.fillText('No history data yet — run export_results.py to populate.', 20, H/2);
-    return;
-  }
+            if (history.length === 0) {
+                ctx.fillStyle = '#6b6b88';
+                ctx.font = '12px Space Mono, monospace';
+                ctx.fillText('No history data yet — run export_results.py to populate.', 20, H / 2);
+                return;
+            }
 
-  const PAD = { top: 20, right: 20, bottom: 36, left: 44 };
-  const cW = W - PAD.left - PAD.right;
-  const cH = H - PAD.top  - PAD.bottom;
+            const PAD = { top: 20, right: 20, bottom: 36, left: 44 };
+            const cW = W - PAD.left - PAD.right;
+            const cH = H - PAD.top - PAD.bottom;
 
-  const maxScore = Math.max(...history.map(h => h.solved), 1);
-  const yMax = Math.ceil(maxScore * 1.2 / 5) * 5;
+            const maxScore = Math.max(...history.map(h => h.solved), 1);
+            const yMax = Math.ceil(maxScore * 1.2 / 5) * 5;
 
-  function xPos(i)  { return PAD.left + (i / (history.length - 1 || 1)) * cW; }
-  function yPos(v)  { return PAD.top  + cH - (v / yMax) * cH; }
+            function xPos(i) { return PAD.left + (i / (history.length - 1 || 1)) * cW; }
+            function yPos(v) { return PAD.top + cH - (v / yMax) * cH; }
 
-  // grid lines
-  ctx.strokeStyle = '#2a2a3a';
-  ctx.lineWidth = 1;
-  for (let g = 0; g <= 4; g++) {
-    const y = PAD.top + (g / 4) * cH;
-    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
-    const label = Math.round(yMax - (g / 4) * yMax);
-    ctx.fillStyle = '#6b6b88';
-    ctx.font = '10px Space Mono, monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText(label, PAD.left - 8, y + 4);
-  }
+            // grid lines
+            ctx.strokeStyle = '#2a2a3a';
+            ctx.lineWidth = 1;
+            for (let g = 0; g <= 4; g++) {
+                const y = PAD.top + (g / 4) * cH;
+                ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
+                const label = Math.round(yMax - (g / 4) * yMax);
+                ctx.fillStyle = '#6b6b88';
+                ctx.font = '10px Space Mono, monospace';
+                ctx.textAlign = 'right';
+                ctx.fillText(label, PAD.left - 8, y + 4);
+            }
 
-  // x axis labels (show up to 6 dates)
-  ctx.textAlign = 'center';
-  const step = Math.max(1, Math.floor(history.length / 6));
-  history.forEach((h, i) => {
-    if (i % step === 0 || i === history.length - 1) {
-      ctx.fillStyle = '#6b6b88';
-      ctx.font = '9px Space Mono, monospace';
-      ctx.fillText(h.date.slice(5), xPos(i), H - PAD.bottom + 18);
-    }
-  });
+            // x axis labels (show up to 6 dates)
+            ctx.textAlign = 'center';
+            const step = Math.max(1, Math.floor(history.length / 6));
+            history.forEach((h, i) => {
+                if (i % step === 0 || i === history.length - 1) {
+                    ctx.fillStyle = '#6b6b88';
+                    ctx.font = '9px Space Mono, monospace';
+                    ctx.fillText(h.date.slice(5), xPos(i), H - PAD.bottom + 18);
+                }
+            });
 
-  // area fill
-  const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + cH);
-  grad.addColorStop(0,   '#7fff6a33');
-  grad.addColorStop(1,   '#7fff6a00');
-  ctx.beginPath();
-  history.forEach((h, i) => {
-    i === 0 ? ctx.moveTo(xPos(i), yPos(h.solved))
-            : ctx.lineTo(xPos(i), yPos(h.solved));
-  });
-  ctx.lineTo(xPos(history.length - 1), PAD.top + cH);
-  ctx.lineTo(PAD.left, PAD.top + cH);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
+            // area fill
+            const grad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + cH);
+            grad.addColorStop(0, '#7fff6a33');
+            grad.addColorStop(1, '#7fff6a00');
+            ctx.beginPath();
+            history.forEach((h, i) => {
+                i === 0 ? ctx.moveTo(xPos(i), yPos(h.solved))
+                    : ctx.lineTo(xPos(i), yPos(h.solved));
+            });
+            ctx.lineTo(xPos(history.length - 1), PAD.top + cH);
+            ctx.lineTo(PAD.left, PAD.top + cH);
+            ctx.closePath();
+            ctx.fillStyle = grad;
+            ctx.fill();
 
-  // line
-  ctx.beginPath();
-  ctx.strokeStyle = '#7fff6a';
-  ctx.lineWidth = 2;
-  history.forEach((h, i) => {
-    i === 0 ? ctx.moveTo(xPos(i), yPos(h.solved))
-            : ctx.lineTo(xPos(i), yPos(h.solved));
-  });
-  ctx.stroke();
+            // line
+            ctx.beginPath();
+            ctx.strokeStyle = '#7fff6a';
+            ctx.lineWidth = 2;
+            history.forEach((h, i) => {
+                i === 0 ? ctx.moveTo(xPos(i), yPos(h.solved))
+                    : ctx.lineTo(xPos(i), yPos(h.solved));
+            });
+            ctx.stroke();
 
-  // dots
-  history.forEach((h, i) => {
-    ctx.beginPath();
-    ctx.arc(xPos(i), yPos(h.solved), 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = '#7fff6a';
-    ctx.fill();
-    ctx.strokeStyle = '#0a0a0f';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  });
-}
+            // dots
+            history.forEach((h, i) => {
+                ctx.beginPath();
+                ctx.arc(xPos(i), yPos(h.solved), 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#7fff6a';
+                ctx.fill();
+                ctx.strokeStyle = '#0a0a0f';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+        }
 
-// ── grid rendering ─────────────────────────────────────────────────────────
-function makeGrid(data, cellSize = 8) {
-  if (!data || !data.length) return document.createElement('div');
-  const rows = data.length;
-  const cols = data[0].length;
-  const el = document.createElement('div');
-  el.className = 'arc-grid';
-  el.style.setProperty('--cell-size', cellSize + 'px');
-  el.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-  data.forEach(row => row.forEach(val => {
-    const cell = document.createElement('div');
-    cell.className = 'arc-cell';
-    cell.style.background = COLORS[val] ?? '#000';
-    el.appendChild(cell);
-  }));
-  return el;
-}
+        // ── grid rendering ─────────────────────────────────────────────────────────
+        function makeGrid(data, cellSize = 8) {
+            if (!data || !data.length) return document.createElement('div');
+            const rows = data.length;
+            const cols = data[0].length;
+            const el = document.createElement('div');
+            el.className = 'arc-grid';
+            el.style.setProperty('--cell-size', cellSize + 'px');
+            el.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+            data.forEach(row => row.forEach(val => {
+                const cell = document.createElement('div');
+                cell.className = 'arc-cell';
+                cell.style.background = COLORS[val] ?? '#000';
+                el.appendChild(cell);
+            }));
+            return el;
+        }
 
-function cellSizeFor(grid) {
-  if (!grid || !grid.length) return 8;
-  const dim = Math.max(grid.length, grid[0]?.length ?? 0);
-  if (dim <= 5)  return 14;
-  if (dim <= 10) return 10;
-  if (dim <= 20) return 7;
-  return 5;
-}
+        function cellSizeFor(grid) {
+            if (!grid || !grid.length) return 8;
+            const dim = Math.max(grid.length, grid[0]?.length ?? 0);
+            if (dim <= 5) return 14;
+            if (dim <= 10) return 10;
+            if (dim <= 20) return 7;
+            return 5;
+        }
 
-// ── task grid (lazy via IntersectionObserver) ──────────────────────────────
-let cardObserver = null;
+        // ── task grid (lazy via IntersectionObserver) ──────────────────────────────
+        let cardObserver = null;
 
-function renderTaskGrid() {
-  if (!snapshot) return;
-  filterTasks();
-}
+        function renderTaskGrid() {
+            if (!snapshot) return;
+            filterTasks();
+        }
 
-function setFilter(f, btn) {
-  activeFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  filterTasks();
-}
+        function setFilter(f, btn) {
+            activeFilter = f;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filterTasks();
+        }
 
-function filterTasks() {
-  if (!snapshot) return;
-  const q = document.getElementById('search-input').value.toLowerCase();
-  const tasks = snapshot.tasks.filter(t => {
-    if (activeFilter === 'solved'   && t.status !== 'solved')   return false;
-    if (activeFilter === 'unsolved' && t.status === 'solved')   return false;
-    if (q && !t.id.toLowerCase().includes(q)) return false;
-    return true;
-  });
+        function filterTasks() {
+            if (!snapshot) return;
+            const q = document.getElementById('search-input').value.toLowerCase();
+            const tasks = snapshot.tasks.filter(t => {
+                if (activeFilter === 'solved' && t.status !== 'solved') return false;
+                if (activeFilter === 'unsolved' && t.status === 'solved') return false;
+                if (q && !t.id.toLowerCase().includes(q)) return false;
+                return true;
+            });
 
-  document.getElementById('task-count').textContent = `${tasks.length} tasks`;
-  const grid = document.getElementById('task-grid');
+            document.getElementById('task-count').textContent = `${tasks.length} tasks`;
+            const grid = document.getElementById('task-grid');
 
-  // disconnect old observer before clearing
-  if (cardObserver) { cardObserver.disconnect(); cardObserver = null; }
-  grid.innerHTML = '';
+            // disconnect old observer before clearing
+            if (cardObserver) { cardObserver.disconnect(); cardObserver = null; }
+            grid.innerHTML = '';
 
-  if (tasks.length === 0) {
-    grid.innerHTML = '<div class="empty">no tasks match</div>';
-    return;
-  }
+            if (tasks.length === 0) {
+                grid.innerHTML = '<div class="empty">no tasks match</div>';
+                return;
+            }
 
-  // observer renders grid pixels only when a card scrolls near viewport
-  cardObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const card = entry.target;
-      if (card.dataset.rendered) return;
-      card.dataset.rendered = '1';
-      cardObserver.unobserve(card);
+            // observer renders grid pixels only when a card scrolls near viewport
+            cardObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    const card = entry.target;
+                    if (card.dataset.rendered) return;
+                    card.dataset.rendered = '1';
+                    cardObserver.unobserve(card);
 
-      const taskId = card.dataset.taskId;
-      const preview = card.querySelector('.task-preview');
-      fetch(`data/tasks/${taskId}.json`)
-        .then(r => r.json())
-        .then(taskData => {
-          const cs = cellSizeFor(taskData.train?.[0]?.input);
-          (taskData.train ?? []).slice(0, 2).forEach(p => {
-            const wrap = document.createElement('div');
-            wrap.className = 'pair-wrap';
-            wrap.appendChild(makeGrid(p.input, cs));
-            const arrow = document.createElement('span');
-            arrow.className = 'pair-arrow';
-            arrow.textContent = '→';
-            wrap.appendChild(arrow);
-            wrap.appendChild(makeGrid(p.output, cs));
-            preview.appendChild(wrap);
-          });
-        })
-        .catch(() => { preview.textContent = '—'; });
-    });
-  }, { rootMargin: '200px' }); // render 200px before entering view
+                    const taskId = card.dataset.taskId;
+                    const preview = card.querySelector('.task-preview');
+                    fetch(`data/tasks/${taskId}.json`)
+                        .then(r => r.json())
+                        .then(taskData => {
+                            const cs = cellSizeFor(taskData.train?.[0]?.input);
+                            (taskData.train ?? []).slice(0, 2).forEach(p => {
+                                const wrap = document.createElement('div');
+                                wrap.className = 'pair-wrap';
+                                wrap.appendChild(makeGrid(p.input, cs));
+                                const arrow = document.createElement('span');
+                                arrow.className = 'pair-arrow';
+                                arrow.textContent = '→';
+                                wrap.appendChild(arrow);
+                                wrap.appendChild(makeGrid(p.output, cs));
+                                preview.appendChild(wrap);
+                            });
+                        })
+                        .catch(() => { preview.textContent = '—'; });
+                });
+            }, { rootMargin: '200px' }); // render 200px before entering view
 
-  // create lightweight card shells — no pixel divs yet
-  tasks.forEach(task => {
-    const card = document.createElement('div');
-    card.className = `task-card ${task.status}`;
-    card.dataset.taskId = task.id;
-    card.onclick = () => openModal(task);
+            // create lightweight card shells — no pixel divs yet
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = `task-card ${task.status}`;
+                card.dataset.taskId = task.id;
+                card.onclick = () => openModal(task);
 
-    card.innerHTML = `
+                card.innerHTML = `
       <div class="task-card-header">
         <span class="task-id">${task.id}</span>
         <span class="task-badge ${task.status}">${task.status}</span>
       </div>
       <div class="task-preview" style="min-height:40px"></div>
     `;
-    grid.appendChild(card);
-    cardObserver.observe(card);
-  });
-}
+                grid.appendChild(card);
+                cardObserver.observe(card);
+            });
+        }
 
-// ── modal ──────────────────────────────────────────────────────────────────────────
-const FALLBACK_STEPS = new Set(['echo_input','rotate_180','reflect_v','identity']);
+        // ── modal ──────────────────────────────────────────────────────────────────────────
+        const FALLBACK_STEPS = new Set(['echo_input', 'rotate_180', 'reflect_v', 'identity']);
 
-function renderModalGrids(taskData, task) {
-  // train pairs
-  const trainEl = document.getElementById('modal-train');
-  trainEl.innerHTML = '';
-  (taskData.train ?? []).forEach((p, i) => {
-    const cs = cellSizeFor(p.input);
-    const block = document.createElement('div');
-    block.className = 'pair-block';
-    block.innerHTML = `<div class="pair-label">train ${i}</div>`;
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:8px;align-items:center';
-    row.appendChild(makeGrid(p.input, cs));
-    const arr = document.createElement('span');
-    arr.className = 'pair-arrow';
-    arr.textContent = '→';
-    row.appendChild(arr);
-    row.appendChild(makeGrid(p.output, cs));
-    block.appendChild(row);
-    trainEl.appendChild(block);
-  });
+        function renderModalGrids(taskData, task) {
+            // train pairs
+            const trainEl = document.getElementById('modal-train');
+            trainEl.innerHTML = '';
+            (taskData.train ?? []).forEach((p, i) => {
+                const cs = cellSizeFor(p.input);
+                const block = document.createElement('div');
+                block.className = 'pair-block';
+                block.innerHTML = `<div class="pair-label">train ${i}</div>`;
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;gap:8px;align-items:center';
+                row.appendChild(makeGrid(p.input, cs));
+                const arr = document.createElement('span');
+                arr.className = 'pair-arrow';
+                arr.textContent = '→';
+                row.appendChild(arr);
+                row.appendChild(makeGrid(p.output, cs));
+                block.appendChild(row);
+                trainEl.appendChild(block);
+            });
 
-  // test inputs
-  const testEl = document.getElementById('modal-test-input');
-  testEl.innerHTML = '';
-  (taskData.test_inputs ?? []).forEach((inp, i) => {
-    const cs = cellSizeFor(inp);
-    const block = document.createElement('div');
-    block.className = 'pair-block';
-    block.innerHTML = `<div class="pair-label">test ${i} input</div>`;
-    block.appendChild(makeGrid(inp, cs));
-    testEl.appendChild(block);
-  });
+            // test inputs
+            const testEl = document.getElementById('modal-test-input');
+            testEl.innerHTML = '';
+            (taskData.test_inputs ?? []).forEach((inp, i) => {
+                const cs = cellSizeFor(inp);
+                const block = document.createElement('div');
+                block.className = 'pair-block';
+                block.innerHTML = `<div class="pair-label">test ${i} input</div>`;
+                block.appendChild(makeGrid(inp, cs));
+                testEl.appendChild(block);
+            });
 
-  // guesses (pass@2) — side by side; DSL steps shown next to each image
-    //   const guesses = task.guesses ?? [];
-    //   const steps   = task.steps   ?? [];
-    // NEW
-  const allGuesses = task.guesses ?? [];   // allGuesses[testN][attemptN]
-  const allSteps   = task.steps   ?? [];   // allSteps[testN][attemptN]
-  const guessSection = document.getElementById('modal-guesses-section');
-  const displayEl    = document.getElementById('modal-guess-display');
-  displayEl.innerHTML = '';
-  // steps section no longer used separately
-  document.getElementById('modal-steps-section').style.display = 'none';
-  document.getElementById('modal-steps').innerHTML = '';
+            // guesses (pass@2) — side by side; DSL steps shown next to each image
+            //   const guesses = task.guesses ?? [];
+            //   const steps   = task.steps   ?? [];
+            // NEW
+            const allGuesses = task.guesses ?? [];   // allGuesses[testN][attemptN]
+            const allSteps = task.steps ?? [];   // allSteps[testN][attemptN]
+            const guessSection = document.getElementById('modal-guesses-section');
+            const displayEl = document.getElementById('modal-guess-display');
+            displayEl.innerHTML = '';
+            // steps section no longer used separately
+            document.getElementById('modal-steps-section').style.display = 'none';
+            document.getElementById('modal-steps').innerHTML = '';
 
-//   if (guesses.length === 0) {
-//     guessSection.style.display = 'none';
-//   } else {
-//     guessSection.style.display = 'block';
-//     const row = document.createElement('div');
-//     row.className = 'guesses-row';
-//     guesses.forEach((g, i) => {
-//       if (i > 0 && JSON.stringify(g) === JSON.stringify(guesses[i - 1])) return;
-//       const cs = cellSizeFor(g);
+            //   if (guesses.length === 0) {
+            //     guessSection.style.display = 'none';
+            //   } else {
+            //     guessSection.style.display = 'block';
+            //     const row = document.createElement('div');
+            //     row.className = 'guesses-row';
+            //     guesses.forEach((g, i) => {
+            //       if (i > 0 && JSON.stringify(g) === JSON.stringify(guesses[i - 1])) return;
+            //       const cs = cellSizeFor(g);
 
-//       const block = document.createElement('div');
-//       block.className = 'guess-block';
+            //       const block = document.createElement('div');
+            //       block.className = 'guess-block';
 
-//       // label
-//       const label = document.createElement('div');
-//       label.className = `guess-label${i === 1 ? ' guess-2' : ''}`;
-//       label.textContent = `Guess ${i + 1}`;
-//       block.appendChild(label);
+            //       // label
+            //       const label = document.createElement('div');
+            //       label.className = `guess-label${i === 1 ? ' guess-2' : ''}`;
+            //       label.textContent = `Guess ${i + 1}`;
+            //       block.appendChild(label);
 
-//       // inner row: grid left, steps right
-//       const inner = document.createElement('div');
-//       inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
-//       inner.appendChild(makeGrid(g, cs));
+            //       // inner row: grid left, steps right
+            //       const inner = document.createElement('div');
+            //       inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
+            //       inner.appendChild(makeGrid(g, cs));
 
-//       const s = steps[i];
-//       if (s) {
-//         const isFallback = FALLBACK_STEPS.has(s.trim());
-//         const stepsWrap = document.createElement('div');
-//         stepsWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;padding-top:2px';
-//         s.split(' → ').forEach((step, si) => {
-//           if (si > 0) {
-//             const sep = document.createElement('span');
-//             sep.className = 'step-sep';
-//             sep.style.cssText = 'font-size:9px;color:var(--muted);line-height:1';
-//             sep.textContent = '→';
-//             stepsWrap.appendChild(sep);
-//           }
-//           const badge = document.createElement('span');
-//           badge.className = 'step-badge' + (isFallback ? ' fallback' : '');
-//           badge.textContent = step.trim();
-//           stepsWrap.appendChild(badge);
-//         });
-//         inner.appendChild(stepsWrap);
-//       }
+            //       const s = steps[i];
+            //       if (s) {
+            //         const isFallback = FALLBACK_STEPS.has(s.trim());
+            //         const stepsWrap = document.createElement('div');
+            //         stepsWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;padding-top:2px';
+            //         s.split(' → ').forEach((step, si) => {
+            //           if (si > 0) {
+            //             const sep = document.createElement('span');
+            //             sep.className = 'step-sep';
+            //             sep.style.cssText = 'font-size:9px;color:var(--muted);line-height:1';
+            //             sep.textContent = '→';
+            //             stepsWrap.appendChild(sep);
+            //           }
+            //           const badge = document.createElement('span');
+            //           badge.className = 'step-badge' + (isFallback ? ' fallback' : '');
+            //           badge.textContent = step.trim();
+            //           stepsWrap.appendChild(badge);
+            //         });
+            //         inner.appendChild(stepsWrap);
+            //       }
 
-//       block.appendChild(inner);
-//       row.appendChild(block);
-//     });
-//     displayEl.appendChild(row);
-//   }
-// }
-if (allGuesses.length === 0) {
-  guessSection.style.display = 'none';
-} else {
-  guessSection.style.display = 'block';
+            //       block.appendChild(inner);
+            //       row.appendChild(block);
+            //     });
+            //     displayEl.appendChild(row);
+            //   }
 
-  allGuesses.forEach((testGuesses, testIdx) => {
-    // Skip if this test input produced no guesses
-    if (!testGuesses || testGuesses.length === 0) return;
+            if (allGuesses.length === 0) {
+                guessSection.style.display = 'none';
+            } else {
+                guessSection.style.display = 'block';
 
-    // Section label when there are multiple test inputs
-    if (allGuesses.length > 1) {
-      const testLabel = document.createElement('div');
-      testLabel.className = 'modal-section-title';
-      testLabel.style.marginTop = testIdx === 0 ? '0' : '20px';
-      testLabel.textContent = `test ${testIdx} guesses`;
-      displayEl.appendChild(testLabel);
-    }
+                allGuesses.forEach((testGuesses, testIdx) => {
+                    // Skip if this test input produced no guesses
+                    if (!testGuesses || testGuesses.length === 0) return;
 
-    const row = document.createElement('div');
-    row.className = 'guesses-row';
+                    // Section label when there are multiple test inputs
+                    if (allGuesses.length > 1) {
+                        const testLabel = document.createElement('div');
+                        testLabel.className = 'modal-section-title';
+                        testLabel.style.marginTop = testIdx === 0 ? '0' : '20px';
+                        testLabel.textContent = `test ${testIdx} guesses`;
+                        displayEl.appendChild(testLabel);
+                    }
 
-    testGuesses.forEach((g, attemptIdx) => {
-      // Skip duplicate second guess (identical to first)
-      if (attemptIdx > 0 &&
-          JSON.stringify(g) === JSON.stringify(testGuesses[attemptIdx - 1])) return;
+                    const row = document.createElement('div');
+                    row.className = 'guesses-row';
 
-      const cs = cellSizeFor(g);
-      const block = document.createElement('div');
-      block.className = 'guess-block';
+                    testGuesses.forEach((g, attemptIdx) => {
+                        // Skip duplicate second guess (identical to first)
+                        if (attemptIdx > 0 &&
+                            JSON.stringify(g) === JSON.stringify(testGuesses[attemptIdx - 1])) return;
 
-      const label = document.createElement('div');
-      label.className = `guess-label${attemptIdx === 1 ? ' guess-2' : ''}`;
-      label.textContent = `Guess ${attemptIdx + 1}`;
-      block.appendChild(label);
+                        const cs = cellSizeFor(g);
+                        const block = document.createElement('div');
+                        block.className = 'guess-block';
 
-      const inner = document.createElement('div');
-      inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
-      inner.appendChild(makeGrid(g, cs));
+                        const label = document.createElement('div');
+                        label.className = `guess-label${attemptIdx === 1 ? ' guess-2' : ''}`;
+                        label.textContent = `Guess ${attemptIdx + 1}`;
+                        block.appendChild(label);
 
-      // Steps for this attempt
-      const s = allSteps[testIdx]?.[attemptIdx];
-      if (s) {
-        const isFallback = FALLBACK_STEPS.has(s.trim());
-        const stepsWrap = document.createElement('div');
-        stepsWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;padding-top:2px';
-        s.split(' → ').forEach((step, si) => {
-          if (si > 0) {
-            const sep = document.createElement('span');
-            sep.className = 'step-sep';
-            sep.style.cssText = 'font-size:9px;color:var(--muted);line-height:1';
-            sep.textContent = '→';
-            stepsWrap.appendChild(sep);
-          }
-          const badge = document.createElement('span');
-          badge.className = 'step-badge' + (isFallback ? ' fallback' : '');
-          badge.textContent = step.trim();
-          stepsWrap.appendChild(badge);
+                        const inner = document.createElement('div');
+                        inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
+                        inner.appendChild(makeGrid(g, cs));
+
+                        // Steps for this attempt
+                        const s = allSteps[testIdx]?.[attemptIdx];
+                        if (s) {
+                            const isFallback = FALLBACK_STEPS.has(s.trim());
+                            const stepsWrap = document.createElement('div');
+                            stepsWrap.style.cssText = 'display:flex;flex-direction:column;gap:5px;padding-top:2px';
+                            s.split(' → ').forEach((step, si) => {
+                                if (si > 0) {
+                                    const sep = document.createElement('span');
+                                    sep.className = 'step-sep';
+                                    sep.style.cssText = 'font-size:9px;color:var(--muted);line-height:1';
+                                    sep.textContent = '→';
+                                    stepsWrap.appendChild(sep);
+                                }
+                                const badge = document.createElement('span');
+                                badge.className = 'step-badge' + (isFallback ? ' fallback' : '');
+                                badge.textContent = step.trim();
+                                stepsWrap.appendChild(badge);
+                            });
+                            inner.appendChild(stepsWrap);
+                        }
+
+                        block.appendChild(inner);
+                        row.appendChild(block);
+                    });
+
+                    displayEl.appendChild(row);
+                });
+            }
+        }
+
+        function openModal(task) {
+            document.getElementById('modal-title').textContent = task.id;
+            const meta = [];
+            meta.push(`status: <span style="color:${task.status === 'solved' ? 'var(--accent)' : 'var(--muted)'}">${task.status}</span>`);
+            if (task.program) meta.push(`program: <span class="program-badge">${task.program}</span>`);
+            if (task.first_solved) meta.push(`first solved: ${task.first_solved}`);
+            document.getElementById('modal-meta').innerHTML = meta.join('<span style="color:var(--border)"> · </span>');
+            document.getElementById('modal-train').innerHTML = '<span style="color:var(--muted);font-size:11px">loading…</span>';
+            document.getElementById('modal-test-input').innerHTML = '';
+            document.getElementById('modal-guess-display').innerHTML = '';
+            document.getElementById('modal-steps').innerHTML = '';
+            document.getElementById('modal-guesses-section').style.display = 'none';
+            document.getElementById('modal-steps-section').style.display = 'none';
+            document.getElementById('modal-bg').classList.add('open');
+            document.body.style.overflow = 'hidden';
+
+            fetch(`data/tasks/${task.id}.json`)
+                .then(r => r.json())
+                .then(taskData => renderModalGrids(taskData, task))
+                .catch(() => {
+                    document.getElementById('modal-train').innerHTML =
+                        '<span style="color:var(--accent2);font-size:11px">failed to load task data</span>';
+                });
+        }
+
+        function closeModal(e) {
+            if (e && e.target !== document.getElementById('modal-bg')) return;
+            document.getElementById('modal-bg').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        // keyboard close
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.getElementById('modal-bg').classList.remove('open');
+                document.body.style.overflow = '';
+            }
         });
-        inner.appendChild(stepsWrap);
-      }
 
-      block.appendChild(inner);
-      row.appendChild(block);
-    });
-
-    displayEl.appendChild(row);
-  });
-}
-
-function openModal(task) {
-  document.getElementById('modal-title').textContent = task.id;
-  const meta = [];
-  meta.push(`status: <span style="color:${task.status==='solved'?'var(--accent)':'var(--muted)'}">${task.status}</span>`);
-  if (task.program) meta.push(`program: <span class="program-badge">${task.program}</span>`);
-  if (task.first_solved) meta.push(`first solved: ${task.first_solved}`);
-  document.getElementById('modal-meta').innerHTML = meta.join('<span style="color:var(--border)"> · </span>');
-  document.getElementById('modal-train').innerHTML = '<span style="color:var(--muted);font-size:11px">loading…</span>';
-  document.getElementById('modal-test-input').innerHTML = '';
-  document.getElementById('modal-guess-display').innerHTML = '';
-  document.getElementById('modal-steps').innerHTML = '';
-  document.getElementById('modal-guesses-section').style.display = 'none';
-  document.getElementById('modal-steps-section').style.display = 'none';
-  document.getElementById('modal-bg').classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  fetch(`data/tasks/${task.id}.json`)
-    .then(r => r.json())
-    .then(taskData => renderModalGrids(taskData, task))
-    .catch(() => {
-      document.getElementById('modal-train').innerHTML =
-        '<span style="color:var(--accent2);font-size:11px">failed to load task data</span>';
-    });
-}
-
-function closeModal(e) {
-  if (e && e.target !== document.getElementById('modal-bg')) return;
-  document.getElementById('modal-bg').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-// keyboard close
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    document.getElementById('modal-bg').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-});
-
-// ── boot ───────────────────────────────────────────────────────────────────
-init();
-</script>
+        // ── boot ───────────────────────────────────────────────────────────────────
+        init();
+    </script>
 </body>
+
 </html>
