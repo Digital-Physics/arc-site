@@ -651,6 +651,188 @@
             color: var(--text);
         }
 
+        /* ── analytics panel (progress view) ── */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .analytics-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+        }
+
+        .analytics-card-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+
+        .mini-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 7px;
+        }
+
+        .mini-bar-label {
+            font-size: 10px;
+            color: var(--text);
+            width: 160px;
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: var(--mono);
+        }
+
+        .mini-bar-track {
+            flex: 1;
+            height: 5px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .mini-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--accent3);
+        }
+
+        .mini-bar-fill.solved { background: var(--accent); }
+        .mini-bar-fill.partial { background: #ffdc0088; }
+
+        .mini-bar-count {
+            font-size: 10px;
+            color: var(--muted);
+            width: 28px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .depth-pips {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .depth-pip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .depth-pip-bar {
+            width: 32px;
+            background: var(--accent);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .depth-pip-label {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .depth-pip-count {
+            font-size: 11px;
+            color: var(--text);
+        }
+
+        /* ── trace inspector (modal) ── */
+        .trace-wrap {
+            margin-top: 20px;
+        }
+
+        .trace-scrubber {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .trace-scrubber input[type=range] {
+            flex: 1;
+            min-width: 120px;
+            accent-color: var(--accent3);
+        }
+
+        .trace-step-name {
+            font-size: 10px;
+            color: var(--accent3);
+            font-family: var(--mono);
+            min-width: 160px;
+        }
+
+        .trace-meta {
+            font-size: 10px;
+            color: var(--muted);
+            display: flex;
+            gap: 12px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .trace-meta span { white-space: nowrap; }
+
+        .trace-grid-wrap {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        /* ── partial scores panel (modal) ── */
+        .partial-scores-wrap {
+            margin-top: 16px;
+        }
+
+        .partial-score-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .partial-score-label {
+            font-size: 10px;
+            color: var(--muted);
+            font-family: var(--mono);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .partial-score-frac {
+            font-size: 10px;
+            color: var(--accent3);
+            white-space: nowrap;
+        }
+
+        .partial-score-track {
+            width: 60px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .partial-score-fill {
+            height: 100%;
+            background: var(--accent3);
+            border-radius: 2px;
+        }
+
         /* ── responsive ── */
         @media (max-width: 600px) {
             .site-header {
@@ -732,6 +914,27 @@
                 <tbody id="leaderboard-body"></tbody>
             </table>
 
+            <!-- ── ANALYTICS ── -->
+            <div class="chart-title" style="margin-bottom:16px">DSL analytics</div>
+            <div class="analytics-grid" id="analytics-grid">
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Top solved primitives</div>
+                    <div id="analytics-solved-steps"></div>
+                </div>
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Top partial-match primitives</div>
+                    <div id="analytics-partial-steps"></div>
+                </div>
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Program depth distribution</div>
+                    <div id="analytics-depth" style="display:flex;align-items:flex-end;gap:10px;height:80px;padding-top:8px"></div>
+                </div>
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Solve rate over time</div>
+                    <div id="analytics-trend" style="font-size:11px;color:var(--muted)">—</div>
+                </div>
+            </div>
+
         </div>
 
         <!-- ── TASKS VIEW ── -->
@@ -767,6 +970,27 @@
                 <div class="guess-tabs" id="guess-tabs"></div>
                 <div id="modal-guess-display"></div>
             </div>
+
+            <!-- ── TRACE INSPECTOR ── -->
+            <div id="modal-trace-section" style="display:none">
+                <div class="modal-section-title">Step inspector — guess 1</div>
+                <div class="trace-wrap">
+                    <div class="trace-scrubber">
+                        <input type="range" id="trace-slider" min="0" value="0" step="1"
+                               oninput="scrubTrace(this.value)">
+                        <span class="trace-step-name" id="trace-step-label">initial</span>
+                    </div>
+                    <div class="trace-meta" id="trace-meta"></div>
+                    <div class="trace-grid-wrap" id="trace-grid-wrap"></div>
+                </div>
+            </div>
+
+            <!-- ── PARTIAL SCORES ── -->
+            <div id="modal-partial-section" style="display:none">
+                <div class="modal-section-title">Close misses (partial matches)</div>
+                <div class="partial-scores-wrap" id="modal-partial-scores"></div>
+            </div>
+
             <div id="modal-steps-section" style="display:none;margin-top:16px">
                 <div class="modal-section-title">DSL steps</div>
                 <div id="modal-steps" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -854,6 +1078,96 @@
             document.getElementById('stat-date').textContent = snapshot.date;
             document.getElementById('stat-pass2').textContent = 'enabled';
             document.getElementById('stat-total').textContent = total;
+
+            renderAnalytics();
+        }
+
+        // ── analytics panel ────────────────────────────────────────────────────────
+        function renderAnalytics() {
+            if (!snapshot) return;
+
+            const solvedSteps  = snapshot.solved_by_step  ?? {};
+            const partialSteps = snapshot.partial_by_step ?? {};
+            const depthDist    = snapshot.depth_dist      ?? {};
+
+            // ── Top solved primitives ──────────────────────────────────
+            const solvedEl = document.getElementById('analytics-solved-steps');
+            solvedEl.innerHTML = '';
+            const solvedEntries = Object.entries(solvedSteps)
+                .sort((a, b) => b[1] - a[1]).slice(0, 12);
+            const solvedMax = solvedEntries[0]?.[1] ?? 1;
+            solvedEntries.forEach(([name, count]) => {
+                const row = document.createElement('div');
+                row.className = 'mini-bar-row';
+                row.innerHTML = `
+                    <span class="mini-bar-label" title="${name}">${name}</span>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill solved" style="width:${100*count/solvedMax}%"></div>
+                    </div>
+                    <span class="mini-bar-count">${count}</span>`;
+                solvedEl.appendChild(row);
+            });
+            if (!solvedEntries.length) solvedEl.innerHTML =
+                '<span style="font-size:11px;color:var(--muted)">no data yet</span>';
+
+            // ── Top partial primitives ─────────────────────────────────
+            const partialEl = document.getElementById('analytics-partial-steps');
+            partialEl.innerHTML = '';
+            const partialEntries = Object.entries(partialSteps)
+                .sort((a, b) => b[1] - a[1]).slice(0, 12);
+            const partialMax = partialEntries[0]?.[1] ?? 1;
+            partialEntries.forEach(([name, count]) => {
+                const row = document.createElement('div');
+                row.className = 'mini-bar-row';
+                row.innerHTML = `
+                    <span class="mini-bar-label" title="${name}">${name}</span>
+                    <div class="mini-bar-track">
+                        <div class="mini-bar-fill partial" style="width:${100*count/partialMax}%"></div>
+                    </div>
+                    <span class="mini-bar-count">${count}</span>`;
+                partialEl.appendChild(row);
+            });
+            if (!partialEntries.length) partialEl.innerHTML =
+                '<span style="font-size:11px;color:var(--muted)">no data yet</span>';
+
+            // ── Depth distribution bar chart ───────────────────────────
+            const depthEl = document.getElementById('analytics-depth');
+            depthEl.innerHTML = '';
+            const depthEntries = Object.entries(depthDist)
+                .map(([k, v]) => [parseInt(k), v])
+                .sort((a, b) => a[0] - b[0]);
+            const depthMax = Math.max(...depthEntries.map(e => e[1]), 1);
+            const BAR_MAX_H = 60; // px
+            depthEntries.forEach(([depth, count]) => {
+                const barH = Math.max(4, Math.round(BAR_MAX_H * count / depthMax));
+                const pip = document.createElement('div');
+                pip.className = 'depth-pip';
+                pip.innerHTML = `
+                    <span class="depth-pip-count">${count}</span>
+                    <div class="depth-pip-bar" style="height:${barH}px"></div>
+                    <span class="depth-pip-label">${depth}-step</span>`;
+                depthEl.appendChild(pip);
+            });
+            if (!depthEntries.length) depthEl.innerHTML =
+                '<span style="font-size:11px;color:var(--muted)">no data yet</span>';
+
+            // ── Trend (delta from last run) ────────────────────────────
+            const trendEl = document.getElementById('analytics-trend');
+            if (history.length >= 2) {
+                const prev = history[history.length - 2];
+                const curr = history[history.length - 1];
+                const delta = curr.solved - prev.solved;
+                const sign  = delta >= 0 ? '+' : '';
+                const color = delta > 0 ? 'var(--accent)' : delta < 0 ? 'var(--accent2)' : 'var(--muted)';
+                trendEl.innerHTML = `
+                    <span style="font-family:var(--display);font-size:1.6rem;font-weight:700;color:${color}">${sign}${delta}</span>
+                    <span style="color:var(--muted);margin-left:8px">since ${prev.date}</span>
+                    <br><span style="color:var(--muted);font-size:10px;margin-top:4px;display:block">
+                        ${curr.solved} solved / ${curr.total} total
+                    </span>`;
+            } else {
+                trendEl.innerHTML = '<span style="color:var(--muted)">need 2+ runs to show delta</span>';
+            }
         }
 
         function renderLeaderboard() {
@@ -1090,6 +1404,28 @@
         }
 
         // ── modal ──────────────────────────────────────────────────────────────────────────
+        // Trace state — holds the current task's trace for the step inspector
+        let currentTrace = null;
+
+        function scrubTrace(idx) {
+            if (!currentTrace || !currentTrace[idx]) return;
+            const frame = currentTrace[idx];
+            const label = document.getElementById('trace-step-label');
+            const meta  = document.getElementById('trace-meta');
+            const wrap  = document.getElementById('trace-grid-wrap');
+
+            label.textContent = frame.step;
+            meta.innerHTML = `
+                <span>bg: ${frame.bg_color}</span>
+                <span>objects: ${frame.n_objects}</span>
+                <span>panels: ${frame.n_panels}</span>
+                <span>step ${parseInt(idx)} / ${currentTrace.length - 1}</span>`;
+
+            wrap.innerHTML = '';
+            const cs = cellSizeFor(frame.grid);
+            wrap.appendChild(makeGrid(frame.grid, cs));
+        }
+
         const FALLBACK_STEPS = new Set(['echo_input', 'rotate_180', 'reflect_v', 'identity']);
 
         function renderModalGrids(taskData, task) {
@@ -1257,6 +1593,52 @@
                     displayEl.appendChild(row);
                 });
             }
+
+            // ── Trace inspector ────────────────────────────────────────
+            // traces[0] is the trace for test input 0, attempt 0 (or null)
+            const traceSection = document.getElementById('modal-trace-section');
+            const rawTrace = (task.traces ?? [])[0];
+            if (rawTrace && rawTrace.length > 1) {
+                currentTrace = rawTrace;
+                traceSection.style.display = 'block';
+                const slider = document.getElementById('trace-slider');
+                slider.max   = rawTrace.length - 1;
+                slider.value = 0;
+                scrubTrace(0);
+            } else {
+                currentTrace = null;
+                traceSection.style.display = 'none';
+            }
+
+            // ── Partial scores ─────────────────────────────────────────
+            const partialSection = document.getElementById('modal-partial-section');
+            const partialEl      = document.getElementById('modal-partial-scores');
+            const partialScores  = task.partial_scores ?? {};
+            const partialEntries = Object.entries(partialScores)
+                .filter(([, s]) => s > 0)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            if (partialEntries.length > 0) {
+                partialSection.style.display = 'block';
+                partialEl.innerHTML = '';
+                const nTrain = (task.steps?.[0]?.[0] ?? '').match(/\/(\d+)\)/)?.[1]
+                    ?? partialEntries[0]?.[1] ?? 1;
+                partialEntries.forEach(([prog, score]) => {
+                    const row = document.createElement('div');
+                    row.className = 'partial-score-row';
+                    const pct = Math.round(100 * score / nTrain);
+                    row.innerHTML = `
+                        <span class="partial-score-label" title="${prog}">${prog}</span>
+                        <div class="partial-score-track">
+                            <div class="partial-score-fill" style="width:${pct}%"></div>
+                        </div>
+                        <span class="partial-score-frac">${score}/${nTrain}</span>`;
+                    partialEl.appendChild(row);
+                });
+            } else {
+                partialSection.style.display = 'none';
+            }
         }
 
         function openModal(task) {
@@ -1272,6 +1654,11 @@
             document.getElementById('modal-steps').innerHTML = '';
             document.getElementById('modal-guesses-section').style.display = 'none';
             document.getElementById('modal-steps-section').style.display = 'none';
+            document.getElementById('modal-trace-section').style.display = 'none';
+            document.getElementById('modal-partial-section').style.display = 'none';
+            document.getElementById('trace-grid-wrap').innerHTML = '';
+            document.getElementById('trace-meta').innerHTML = '';
+            currentTrace = null;
             document.getElementById('modal-bg').classList.add('open');
             document.body.style.overflow = 'hidden';
 
