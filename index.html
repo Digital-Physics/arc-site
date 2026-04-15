@@ -1822,9 +1822,9 @@
             }
         }
 
-        useEffect(() => {
+        document.addEventListener('DOMContentLoaded', () => {
             addInfoToBackend();
-        }, []);
+        });
 
         // ── boot ───────────────────────────────────────────────────────────────────
         init();
