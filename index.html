@@ -973,13 +973,25 @@
             <!-- ── ANALYTICS ── -->
             <div class="chart-title" style="margin-bottom:16px">DSL analytics</div>
             <div class="analytics-grid">
-                <div class="analytics-card">
-                    <div class="analytics-card-title">Top solved primitives</div>
-                    <div id="analytics-solved-steps"></div>
-                </div>
-                <div class="analytics-card">
-                    <div class="analytics-card-title">Top partial-match primitives</div>
-                    <div id="analytics-partial-steps"></div>
+                <div class="analytics-card" style="grid-column: 1 / -1">
+                    <div class="analytics-card-title" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                        <span>Primitive coverage</span>
+                        <span id="analytics-prim-count" style="font-size:11px;color:var(--muted);font-weight:400"></span>
+                        <span style="flex:1"></span>
+                        <label style="font-size:11px;color:var(--muted);font-weight:400;display:flex;align-items:center;gap:6px">
+                            sort:
+                            <select id="analytics-prim-sort" style="font-size:11px;padding:2px 6px;background:var(--bg);color:var(--fg);border:1px solid var(--border);border-radius:4px">
+                                <option value="solves">solves</option>
+                                <option value="partials">partials</option>
+                                <option value="unused">unused first</option>
+                                <option value="name">name</option>
+                            </select>
+                        </label>
+                        <label style="font-size:11px;color:var(--muted);font-weight:400;display:flex;align-items:center;gap:6px">
+                            <input type="checkbox" id="analytics-prim-unused-only" style="margin:0"> dead weight only
+                        </label>
+                    </div>
+                    <div id="analytics-primitives" style="max-height:420px;overflow-y:auto;padding-right:8px"></div>
                 </div>
                 <div class="analytics-card">
                     <div class="analytics-card-title">Program depth distribution</div>
@@ -988,6 +1000,10 @@
                 <div class="analytics-card">
                     <div class="analytics-card-title">Solve rate trend</div>
                     <div id="analytics-trend" style="font-size:11px;color:var(--muted)">—</div>
+                </div>
+                <div class="analytics-card" style="grid-column: 1 / -1">
+                    <div class="analytics-card-title">Beam search health</div>
+                    <div id="analytics-beam" style="font-size:11px;color:var(--muted)">—</div>
                 </div>
             </div>
 
@@ -1141,44 +1157,69 @@
             const solvedSteps  = snapshot.solved_by_step  ?? {};
             const partialSteps = snapshot.partial_by_step ?? {};
             const depthDist    = snapshot.depth_dist      ?? {};
+            const allPrims     = snapshot.all_primitives  ?? [];
 
-            // Top solved primitives
-            const solvedEl = document.getElementById('analytics-solved-steps');
-            solvedEl.innerHTML = '';
-            const solvedEntries = Object.entries(solvedSteps).sort((a,b)=>b[1]-a[1]).slice(0,12);
-            const solvedMax = solvedEntries[0]?.[1] ?? 1;
-            solvedEntries.forEach(([name, count]) => {
-                solvedEl.insertAdjacentHTML('beforeend', `
-                    <div class="mini-bar-row">
-                        <span class="mini-bar-label" title="${name}">${name}</span>
-                        <div class="mini-bar-track"><div class="mini-bar-fill solved" style="width:${100*count/solvedMax}%"></div></div>
-                        <span class="mini-bar-count">${count}</span>
-                    </div>`);
-            });
-            if (!solvedEntries.length) solvedEl.innerHTML =
-                '<span style="font-size:11px;color:var(--muted)">no data yet</span>';
+            // ── Primitive coverage ───────────────────────────────────────
+            // Union of: every primitive that appeared in any task's beam menu,
+            // plus any that appear in solved/partial counts (defensive — in
+            // case older snapshots don't have all_primitives).
+            const primNames = new Set(allPrims);
+            Object.keys(solvedSteps).forEach(n => primNames.add(n));
+            Object.keys(partialSteps).forEach(n => primNames.add(n));
 
-            // Top partial primitives
-            const partialEl = document.getElementById('analytics-partial-steps');
-            partialEl.innerHTML = '';
-            const partialEntries = Object.entries(partialSteps).sort((a,b)=>b[1]-a[1]).slice(0,12);
-            const partialMax = partialEntries[0]?.[1] ?? 1;
-            partialEntries.forEach(([name, count]) => {
-                partialEl.insertAdjacentHTML('beforeend', `
-                    <div class="mini-bar-row">
-                        <span class="mini-bar-label" title="${name}">${name}</span>
-                        <div class="mini-bar-track"><div class="mini-bar-fill partial" style="width:${100*count/partialMax}%"></div></div>
-                        <span class="mini-bar-count">${count}</span>
-                    </div>`);
-            });
-            if (!partialEntries.length) partialEl.innerHTML =
-                '<span style="font-size:11px;color:var(--muted)">no data yet</span>';
+            const rows = [...primNames].map(name => ({
+                name,
+                solves:   solvedSteps[name]  ?? 0,
+                partials: partialSteps[name] ?? 0,
+            }));
 
-            // Depth distribution
+            const solvedMax  = Math.max(1, ...rows.map(r => r.solves));
+            const partialMax = Math.max(1, ...rows.map(r => r.partials));
+
+            const sortSel    = document.getElementById('analytics-prim-sort');
+            const unusedOnly = document.getElementById('analytics-prim-unused-only');
+            const listEl     = document.getElementById('analytics-primitives');
+            const countEl    = document.getElementById('analytics-prim-count');
+
+            function draw() {
+                const mode = sortSel.value;
+                const unused = unusedOnly.checked;
+                let filtered = unused
+                    ? rows.filter(r => r.solves === 0)
+                    : rows.slice();
+                if (mode === 'solves')   filtered.sort((a,b) => b.solves   - a.solves   || a.name.localeCompare(b.name));
+                if (mode === 'partials') filtered.sort((a,b) => b.partials - a.partials || a.name.localeCompare(b.name));
+                if (mode === 'unused')   filtered.sort((a,b) => (a.solves - b.solves) || (b.partials - a.partials) || a.name.localeCompare(b.name));
+                if (mode === 'name')     filtered.sort((a,b) => a.name.localeCompare(b.name));
+
+                const dead = rows.filter(r => r.solves === 0 && r.partials === 0).length;
+                countEl.textContent =
+                    `${rows.length} primitives · ${rows.length - dead} active · ${dead} never fired`;
+
+                listEl.innerHTML = filtered.map(r => {
+                    const sPct = 100 * r.solves   / solvedMax;
+                    const pPct = 100 * r.partials / partialMax;
+                    const dim  = r.solves === 0 && r.partials === 0 ? 'opacity:.45' : '';
+                    return `<div class="mini-bar-row" style="display:grid;grid-template-columns:minmax(120px,1.3fr) 1fr 32px 1fr 32px;gap:10px;align-items:center;padding:2px 0;${dim}">
+                        <span class="mini-bar-label" title="${r.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span>
+                        <div class="mini-bar-track"><div class="mini-bar-fill solved" style="width:${sPct}%"></div></div>
+                        <span class="mini-bar-count" style="text-align:right">${r.solves || ''}</span>
+                        <div class="mini-bar-track"><div class="mini-bar-fill partial" style="width:${pPct}%"></div></div>
+                        <span class="mini-bar-count" style="text-align:right">${r.partials || ''}</span>
+                    </div>`;
+                }).join('') || '<span style="font-size:11px;color:var(--muted)">no primitives matched</span>';
+            }
+
+            // wire up once; re-draw on change
+            sortSel.onchange    = draw;
+            unusedOnly.onchange = draw;
+            draw();
+
+            // ── Depth distribution ───────────────────────────────────────
             const depthEl = document.getElementById('analytics-depth');
             depthEl.innerHTML = '';
-            const depthEntries = Object.entries(depthDist).map(([k,v])=>[parseInt(k),v]).sort((a,b)=>a[0]-b[0]);
-            const depthMax = Math.max(...depthEntries.map(e=>e[1]), 1);
+            const depthEntries = Object.entries(depthDist).map(([k,v]) => [parseInt(k), v]).sort((a,b) => a[0] - b[0]);
+            const depthMax = Math.max(...depthEntries.map(e => e[1]), 1);
             const BAR_MAX_H = 56;
             depthEntries.forEach(([depth, count]) => {
                 const barH = Math.max(4, Math.round(BAR_MAX_H * count / depthMax));
@@ -1193,7 +1234,58 @@
             if (!depthEntries.length) depthEl.innerHTML =
                 '<span style="font-size:11px;color:var(--muted)">no data yet</span>';
 
-            // Trend
+            // ── Beam search health ───────────────────────────────────────
+            const beamEl = document.getElementById('analytics-beam');
+            const beamEntries = (snapshot.tasks ?? [])
+                .map(t => t.beam)
+                .filter(b => b != null);
+            if (beamEntries.length === 0) {
+                beamEl.innerHTML = '<span style="color:var(--muted)">no beam runs recorded</span>';
+            } else {
+                // Exit reason counts
+                const exits = {};
+                beamEntries.forEach(b => {
+                    exits[b.exit_reason] = (exits[b.exit_reason] ?? 0) + 1;
+                });
+                // Elapsed time percentiles
+                const times = beamEntries.map(b => b.elapsed_s).sort((a,b) => a-b);
+                const pct = p => times[Math.min(times.length-1, Math.floor(times.length * p))];
+                // Depth reached
+                const depthReached = {};
+                beamEntries.forEach(b => {
+                    const d = b.reached_depth;
+                    depthReached[d] = (depthReached[d] ?? 0) + 1;
+                });
+                // Near-miss: score < 0.1 but not solved
+                const nearMiss = beamEntries.filter(b =>
+                    b.solve_depth == null && (b.best_score ?? 99) < 0.1
+                ).length;
+
+                const exitLine = Object.entries(exits)
+                    .sort((a,b) => b[1] - a[1])
+                    .map(([k,v]) => {
+                        const color = k === 'solved' ? 'var(--accent)'
+                                    : k === 'deadline' ? 'var(--accent2)'
+                                    : 'var(--muted)';
+                        return `<span style="color:${color}">${k} ${v}</span>`;
+                    }).join(' · ');
+
+                const depthLine = Object.entries(depthReached)
+                    .map(([d,v]) => [parseInt(d), v])
+                    .sort((a,b) => a[0] - b[0])
+                    .map(([d,v]) => `d${d}:${v}`).join(' · ');
+
+                beamEl.innerHTML = `
+                    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11px;line-height:1.6">
+                        <span style="color:var(--muted)">runs</span><span>${beamEntries.length}</span>
+                        <span style="color:var(--muted)">exit</span><span>${exitLine}</span>
+                        <span style="color:var(--muted)">time (s)</span><span>median ${pct(0.5).toFixed(1)} · p90 ${pct(0.9).toFixed(1)} · max ${times[times.length-1].toFixed(1)}</span>
+                        <span style="color:var(--muted)">reached</span><span>${depthLine}</span>
+                        <span style="color:var(--muted)">near-miss</span><span><span style="color:var(--accent)">${nearMiss}</span> tasks with best_score &lt; 0.1 but unsolved</span>
+                    </div>`;
+            }
+
+            // ── Trend ────────────────────────────────────────────────────
             const trendEl = document.getElementById('analytics-trend');
             if (history.length >= 2) {
                 const prev  = history[history.length - 2];
