@@ -1016,6 +1016,7 @@
                 <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
                 <button class="filter-btn" data-filter="solved" onclick="setFilter('solved',this)">Solved</button>
                 <button class="filter-btn" data-filter="unsolved" onclick="setFilter('unsolved',this)">Unsolved</button>
+                <button class="filter-btn" data-filter="near-miss" onclick="setFilter('near-miss',this)" title="unsolved tasks where beam best_score < 0.1 — i.e. the search got very close">Near-miss</button>
                 <span class="task-count" id="task-count"></span>
             </div>
             <div class="task-grid" id="task-grid">
@@ -1466,12 +1467,27 @@
         function filterTasks() {
             if (!snapshot) return;
             const q = document.getElementById('search-input').value.toLowerCase();
-            const tasks = snapshot.tasks.filter(t => {
-                if (activeFilter === 'solved' && t.status !== 'solved') return false;
-                if (activeFilter === 'unsolved' && t.status === 'solved') return false;
+            const NEAR_MISS_THRESHOLD = 0.1;
+            const isNearMiss = (t) => {
+                if (t.status === 'solved') return false;
+                const b = t.beam;
+                if (!b) return false;
+                if (b.solve_depth != null) return false;
+                return (b.best_score ?? 99) < NEAR_MISS_THRESHOLD;
+            };
+            let tasks = snapshot.tasks.filter(t => {
+                if (activeFilter === 'solved'    && t.status !== 'solved') return false;
+                if (activeFilter === 'unsolved'  && t.status === 'solved') return false;
+                if (activeFilter === 'near-miss' && !isNearMiss(t))        return false;
                 if (q && !t.id.toLowerCase().includes(q)) return false;
                 return true;
             });
+            // For near-miss view, sort by closest first (lowest best_score)
+            if (activeFilter === 'near-miss') {
+                tasks = tasks.slice().sort((a, b) =>
+                    (a.beam?.best_score ?? 99) - (b.beam?.best_score ?? 99)
+                );
+            }
 
             document.getElementById('task-count').textContent = `${tasks.length} tasks`;
             const grid = document.getElementById('task-grid');
@@ -1523,12 +1539,35 @@
                 card.dataset.taskId = task.id;
                 card.onclick = () => openModal(task);
 
+                // For near-miss view, show the beam's best_score and the strongest
+                // partial program name, so you can triage at a glance without clicking.
+                let nearMissRow = '';
+                if (activeFilter === 'near-miss') {
+                    const bs = (task.beam?.best_score ?? null);
+                    const scoreLabel = bs != null ? bs.toFixed(3) : '—';
+                    // Best partial: highest-scoring entry in partial_scores
+                    let bestPartial = '';
+                    const ps = task.partial_scores ?? {};
+                    const entries = Object.entries(ps).sort((a, b) => b[1] - a[1]);
+                    if (entries.length) {
+                        const [name, score] = entries[0];
+                        bestPartial = `<span style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;display:block" title="${name}">${score}× ${name}</span>`;
+                    }
+                    nearMissRow = `
+          <div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:10px;color:var(--muted);border-top:1px dashed var(--border);margin-top:4px">
+            <span>best_score:</span>
+            <span style="color:var(--accent);font-weight:500">${scoreLabel}</span>
+          </div>
+          ${bestPartial}`;
+                }
+
                 card.innerHTML = `
       <div class="task-card-header">
         <span class="task-id">${task.id}</span>
         <span class="task-badge ${task.status}">${task.status}</span>
       </div>
       <div class="task-preview" style="min-height:40px"></div>
+      ${nearMissRow}
     `;
                 grid.appendChild(card);
                 cardObserver.observe(card);
