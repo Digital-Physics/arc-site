@@ -5866,7 +5866,7 @@
   },
   {
     "date": "2026-04-23",
-    "solved": 96,
+    "solved": 97,
     "total": 1000,
     "solved_by_step": {
       "tile_flip_000_111_000": 1,
@@ -5919,6 +5919,8 @@
       "complete_sym_h": 2,
       "reflect_h": 2,
       "mirror_ud": 3,
+      "partial(2/3):shift_diagonal_by_length": 1,
+      "extend_diagonal_line": 1,
       "recolor_enclosed_8": 1,
       "fill_most_frequent_color": 1,
       "scale_down_3x": 1,
@@ -7059,6 +7061,7 @@
       "recolor_7\u21921": 8,
       "recolor_7\u21929": 1,
       "recolor_9\u21927": 1,
+      "shift_diagonal_by_length": 1,
       "mirror_ud": 5,
       "tile_2x1": 1,
       "tile_to_(10, 10)": 1,
@@ -7993,7 +7996,7 @@
     "depth_dist": {
       "1": 49,
       "3": 17,
-      "2": 29,
+      "2": 30,
       "4": 1
     }
   }
