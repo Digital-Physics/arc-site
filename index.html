@@ -1311,7 +1311,7 @@
             // build rows including "You" entry
             const rows = [...LEADERBOARD];
             if (yourScore !== null) {
-                rows.push({ name: "Jon's Algorithm", score: parseFloat(yourScore.toFixed(2)), note: 'latest run', you: true });
+                rows.push({ name: "Jon's Algorithm (on Training Set)", score: parseFloat(yourScore.toFixed(2)), note: 'latest run', you: true });
                 rows.sort((a, b) => b.score - a.score);
             }
 
