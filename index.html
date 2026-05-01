@@ -889,6 +889,182 @@
         .depth-pip-label { font-size: 10px; color: var(--muted); }
         .depth-pip-count { font-size: 11px; color: var(--text); }
 
+        /* ── NCA section (modal) ── */
+        .nca-section {
+            margin-top: 24px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        .nca-summary-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            font-size: 11px;
+        }
+
+        .nca-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .nca-stat-label {
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            font-size: 10px;
+        }
+
+        .nca-stat-value {
+            color: var(--text);
+            font-family: var(--mono);
+        }
+
+        .nca-stat-value.good  { color: var(--accent); }
+        .nca-stat-value.muted { color: var(--muted); }
+
+        .nca-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .nca-step-display {
+            font-family: var(--mono);
+            font-size: 13px;
+            color: var(--accent3);
+            min-width: 52px;
+        }
+
+        .nca-slider {
+            flex: 1;
+            min-width: 120px;
+            accent-color: var(--accent3);
+            cursor: pointer;
+        }
+
+        .nca-play-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .nca-play-btn:hover,
+        .nca-play-btn.playing {
+            border-color: var(--accent3);
+            color: var(--accent3);
+        }
+
+        /* Mini acc bar (one bar per NCA step) */
+        .nca-acc-track {
+            display: flex;
+            gap: 2px;
+            align-items: flex-end;
+            height: 36px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .nca-acc-bar {
+            flex: 1;
+            min-width: 3px;
+            max-width: 12px;
+            background: var(--border);
+            border-radius: 2px 2px 0 0;
+            cursor: pointer;
+            transition: opacity .1s;
+            position: relative;
+        }
+
+        .nca-acc-bar.current {
+            outline: 1px solid var(--accent3);
+        }
+
+        .nca-acc-bar-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-radius: 2px 2px 0 0;
+            background: var(--accent3);
+            transition: height .1s;
+        }
+
+        .nca-acc-bar-fill.exact { background: var(--accent); }
+
+        /* NCA pair layout */
+        .nca-pairs-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .nca-pair-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .nca-pair-label {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .nca-pair-acc {
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--accent3);
+        }
+
+        .nca-pair-acc.exact { color: var(--accent); }
+
+        .nca-grids-inline {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .nca-arrow {
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        /* NCA test section */
+        .nca-test-row {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .nca-test-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .nca-test-label {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
         /* ── responsive ── */
         @media (max-width: 600px) {
             .site-header {
@@ -1066,6 +1242,15 @@
                 <div class="modal-section-title">DSL steps</div>
                 <div id="modal-steps" style="display:flex;flex-direction:column;gap:8px"></div>
             </div>
+
+            <!-- NCA experiment section -->
+            <div id="modal-nca-section" style="display:none" class="nca-section">
+                <div class="modal-section-title">NCA experiment</div>
+                <div id="modal-nca-body">
+                    <span style="font-size:11px;color:var(--muted)" class="loading-pulse">loading NCA data…</span>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -1900,15 +2085,31 @@
             document.getElementById('modal-trace-section').style.display = 'none';
             document.getElementById('modal-partial-section').style.display = 'none';
             document.getElementById('modal-best-attempt-section').style.display = 'none';
+
+            // Reset NCA section to loading state
+            document.getElementById('modal-nca-section').style.display = 'none';
+            document.getElementById('modal-nca-body').innerHTML =
+                '<span style="font-size:11px;color:var(--muted)" class="loading-pulse">loading NCA data…</span>';
+
             document.getElementById('modal-bg').classList.add('open');
             document.body.style.overflow = 'hidden';
 
+            // Load task grid data (train/test grids)
             fetch(`data/tasks/${task.id}.json`)
                 .then(r => r.json())
                 .then(taskData => renderModalGrids(taskData, task))
                 .catch(() => {
                     document.getElementById('modal-train').innerHTML =
                         '<span style="color:var(--accent2);font-size:11px">failed to load task data</span>';
+                });
+
+            // Load NCA sidecar (independent — won't block grid display)
+            fetch(`data/tasks/${task.id}_nca.json`)
+                .then(r => { if (!r.ok) throw new Error('not found'); return r.json(); })
+                .then(ncaData => renderNCASection(ncaData))
+                .catch(() => {
+                    // Sidecar absent or not yet generated — hide section silently
+                    document.getElementById('modal-nca-section').style.display = 'none';
                 });
         }
 
@@ -1926,6 +2127,312 @@
             }
         });
 
+
+        // ── NCA section renderer ───────────────────────────────────────────────
+
+        // Module-level NCA playback state (one modal open at a time)
+        let _ncaState = null;
+
+        const NCA_COLORS = {
+            0:'#000000',1:'#0074D9',2:'#FF4136',3:'#2ECC40',4:'#FFDC00',
+            5:'#AAAAAA',6:'#F012BE',7:'#FF851B',8:'#7FDBFF',9:'#870C25'
+        };
+
+        function ncaCellSize(h, w) {
+            const m = Math.max(h, w);
+            return m <= 5 ? 24 : m <= 10 ? 16 : m <= 20 ? 12 : 9;
+        }
+
+        function ncaMakeCanvas(h, w, cs) {
+            const c = document.createElement('canvas');
+            c.width  = w * cs;  c.height = h * cs;
+            c.style.cssText = `width:${w*cs}px;height:${h*cs}px;display:block`;
+            return c;
+        }
+
+        function ncaDrawGrid(canvas, grid, cs) {
+            if (!grid || !grid.length) return;
+            const ctx = canvas.getContext('2d');
+            const h = grid.length, w = grid[0].length;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let r = 0; r < h; r++) {
+                for (let c2 = 0; c2 < w; c2++) {
+                    ctx.fillStyle = NCA_COLORS[grid[r][c2]] ?? '#333';
+                    ctx.fillRect(c2*cs, r*cs, cs, cs);
+                }
+            }
+        }
+
+        function renderNCASection(data) {
+            const section = document.getElementById('modal-nca-section');
+            const body    = document.getElementById('modal-nca-body');
+
+            if (data.status === 'skipped') {
+                body.innerHTML = `<span style="font-size:11px;color:var(--muted)">skipped — ${data.reason ?? 'no same-shape pairs'}</span>`;
+                section.style.display = 'block';
+                return;
+            }
+            if (data.status === 'error') {
+                body.innerHTML = `<span style="font-size:11px;color:var(--accent2)">NCA error: ${data.reason ?? 'unknown'}</span>`;
+                section.style.display = 'block';
+                return;
+            }
+
+            // ── Build UI ──────────────────────────────────────────────────────
+            const cfg      = data.config   ?? {};
+            const pairs    = (data.pairs   ?? []).filter(p => !p.skipped && p.steps && p.steps.length);
+            const testData = data.test;
+            const nSteps   = cfg.steps ?? (pairs[0]?.steps?.length ? pairs[0].steps.length - 1 : 0);
+
+            // Summary row
+            const anyExact  = pairs.some(p => p.exact);
+            const bestAcc   = pairs.length
+                ? Math.max(...pairs.map(p => Math.max(...(p.accs ?? [0]))))
+                : 0;
+            const lossStr   = data.best_loss != null ? data.best_loss.toFixed(4) : '—';
+
+            const summaryEl = document.createElement('div');
+            summaryEl.className = 'nca-summary-row';
+            summaryEl.innerHTML = `
+                <div class="nca-stat">
+                    <div class="nca-stat-label">Epochs</div>
+                    <div class="nca-stat-value">${cfg.epochs ?? '—'}</div>
+                </div>
+                <div class="nca-stat">
+                    <div class="nca-stat-label">Steps</div>
+                    <div class="nca-stat-value">${nSteps}</div>
+                </div>
+                <div class="nca-stat">
+                    <div class="nca-stat-label">Best loss</div>
+                    <div class="nca-stat-value">${lossStr}</div>
+                </div>
+                <div class="nca-stat">
+                    <div class="nca-stat-label">Best train acc</div>
+                    <div class="nca-stat-value ${anyExact ? 'good' : ''}">${anyExact ? '✓ exact' : bestAcc.toFixed(1) + '%'}</div>
+                </div>
+                <div class="nca-stat">
+                    <div class="nca-stat-label">Hidden ch</div>
+                    <div class="nca-stat-value muted">${cfg.hidden ?? '—'}</div>
+                </div>`;
+            body.innerHTML = '';
+            body.appendChild(summaryEl);
+
+            if (!pairs.length && !testData) {
+                body.insertAdjacentHTML('beforeend',
+                    '<span style="font-size:11px;color:var(--muted)">No step data captured.</span>');
+                section.style.display = 'block';
+                return;
+            }
+
+            // ── Controls ──────────────────────────────────────────────────────
+            const controlsEl = document.createElement('div');
+            controlsEl.className = 'nca-controls';
+
+            const playBtn = document.createElement('button');
+            playBtn.className = 'nca-play-btn';
+            playBtn.textContent = '▶ play';
+
+            const stepDisplay = document.createElement('span');
+            stepDisplay.className = 'nca-step-display';
+            stepDisplay.textContent = 'step 0';
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.className = 'nca-slider';
+            slider.min = 0;
+            slider.max = nSteps;
+            slider.value = 0;
+
+            controlsEl.appendChild(playBtn);
+            controlsEl.appendChild(stepDisplay);
+            controlsEl.appendChild(slider);
+            body.appendChild(controlsEl);
+
+            // ── Acc track (bars, one per step, using pair 0's accs) ───────────
+            const trackEl = document.createElement('div');
+            trackEl.className = 'nca-acc-track';
+            const refAccs = pairs[0]?.accs ?? [];
+            const accBars = [];
+            for (let s = 0; s <= nSteps; s++) {
+                const bar = document.createElement('div');
+                bar.className = 'nca-acc-bar' + (s === 0 ? ' current' : '');
+                const fill = document.createElement('div');
+                fill.className = 'nca-acc-bar-fill' + ((refAccs[s] ?? 0) >= 100 ? ' exact' : '');
+                fill.style.height = ((refAccs[s] ?? 0)) + '%';
+                bar.appendChild(fill);
+                bar.title = `step ${s}: ${(refAccs[s] ?? 0).toFixed(1)}%`;
+                bar.addEventListener('click', () => setNcaStep(s));
+                trackEl.appendChild(bar);
+                accBars.push(bar);
+            }
+            body.appendChild(trackEl);
+
+            // ── Training pair canvases ────────────────────────────────────────
+            const pairsRowEl = document.createElement('div');
+            pairsRowEl.className = 'nca-pairs-row';
+
+            const pairCanvases = [];  // [{ncaCanvas, cs, pair, accLabel}]
+
+            pairs.forEach((pair, pi) => {
+                const h  = pair.input.length,  w  = pair.input[0].length;
+                const cs = ncaCellSize(h, w);
+
+                const block = document.createElement('div');
+                block.className = 'nca-pair-block';
+
+                const accLbl = document.createElement('div');
+                accLbl.className = 'nca-pair-acc' + (pair.exact ? ' exact' : '');
+                accLbl.textContent = `pair ${pi} — ${(pair.accs?.[0] ?? 0).toFixed(1)}%`;
+                block.appendChild(accLbl);
+
+                const gridsRow = document.createElement('div');
+                gridsRow.className = 'nca-grids-inline';
+
+                // Input (static)
+                const inWrap = document.createElement('div');
+                inWrap.className = 'nca-pair-block';
+                const inLbl = document.createElement('div'); inLbl.className = 'nca-pair-label'; inLbl.textContent = 'input';
+                const inCanvas = ncaMakeCanvas(h, w, cs);
+                ncaDrawGrid(inCanvas, pair.input, cs);
+                inWrap.appendChild(inLbl); inWrap.appendChild(inCanvas);
+                gridsRow.appendChild(inWrap);
+
+                const arr1 = document.createElement('span'); arr1.className = 'nca-arrow'; arr1.textContent = '→';
+                gridsRow.appendChild(arr1);
+
+                // NCA output (animated)
+                const ncaWrap = document.createElement('div');
+                ncaWrap.className = 'nca-pair-block';
+                const ncaLbl = document.createElement('div'); ncaLbl.className = 'nca-pair-label'; ncaLbl.textContent = 'NCA';
+                const ncaCanvas = ncaMakeCanvas(h, w, cs);
+                ncaDrawGrid(ncaCanvas, pair.steps[0], cs);
+                ncaWrap.appendChild(ncaLbl); ncaWrap.appendChild(ncaCanvas);
+                gridsRow.appendChild(ncaWrap);
+
+                const arr2 = document.createElement('span'); arr2.className = 'nca-arrow'; arr2.textContent = 'vs';
+                gridsRow.appendChild(arr2);
+
+                // Target (static)
+                const tgtWrap = document.createElement('div');
+                tgtWrap.className = 'nca-pair-block';
+                const tgtLbl = document.createElement('div'); tgtLbl.className = 'nca-pair-label'; tgtLbl.textContent = 'target';
+                const tgtCanvas = ncaMakeCanvas(h, w, cs);
+                ncaDrawGrid(tgtCanvas, pair.target, cs);
+                tgtWrap.appendChild(tgtLbl); tgtWrap.appendChild(tgtCanvas);
+                gridsRow.appendChild(tgtWrap);
+
+                block.appendChild(gridsRow);
+                pairsRowEl.appendChild(block);
+                pairCanvases.push({ ncaCanvas, cs, pair, accLbl });
+            });
+            body.appendChild(pairsRowEl);
+
+            // ── Test section ──────────────────────────────────────────────────
+            let testNcaCanvas = null, testCs = null;
+            if (testData && testData.steps && testData.steps.length) {
+                const th = testData.steps[0].length, tw = testData.steps[0][0].length;
+                testCs = ncaCellSize(th, tw);
+
+                const testSectionTitle = document.createElement('div');
+                testSectionTitle.className = 'modal-section-title';
+                testSectionTitle.style.marginTop = '16px';
+                testSectionTitle.textContent = 'NCA — test output';
+                body.appendChild(testSectionTitle);
+
+                const testRow = document.createElement('div');
+                testRow.className = 'nca-test-row';
+
+                // Test input (static)
+                const tiBlock = document.createElement('div'); tiBlock.className = 'nca-test-block';
+                const tiLbl   = document.createElement('div'); tiLbl.className = 'nca-test-label'; tiLbl.textContent = 'input';
+                const tiCanvas = ncaMakeCanvas(th, tw, testCs);
+                ncaDrawGrid(tiCanvas, testData.input, testCs);
+                tiBlock.appendChild(tiLbl); tiBlock.appendChild(tiCanvas);
+                testRow.appendChild(tiBlock);
+
+                const arr = document.createElement('span'); arr.className = 'nca-arrow'; arr.textContent = '→';
+                testRow.appendChild(arr);
+
+                // NCA output (animated)
+                const tnBlock  = document.createElement('div'); tnBlock.className = 'nca-test-block';
+                const tnLbl    = document.createElement('div'); tnLbl.className = 'nca-test-label'; tnLbl.textContent = 'NCA output';
+                testNcaCanvas  = ncaMakeCanvas(th, tw, testCs);
+                ncaDrawGrid(testNcaCanvas, testData.steps[0], testCs);
+                tnBlock.appendChild(tnLbl); tnBlock.appendChild(testNcaCanvas);
+                testRow.appendChild(tnBlock);
+
+                // Target (if available)
+                if (testData.target) {
+                    const arr2 = document.createElement('span'); arr2.className = 'nca-arrow'; arr2.textContent = 'vs';
+                    testRow.appendChild(arr2);
+                    const ttBlock  = document.createElement('div'); ttBlock.className = 'nca-test-block';
+                    const ttLbl    = document.createElement('div'); ttLbl.className = 'nca-test-label'; ttLbl.textContent = 'target';
+                    const ttCanvas = ncaMakeCanvas(th, tw, testCs);
+                    ncaDrawGrid(ttCanvas, testData.target, testCs);
+                    ttBlock.appendChild(ttLbl); ttBlock.appendChild(ttCanvas);
+                    testRow.appendChild(ttBlock);
+                }
+
+                body.appendChild(testRow);
+            }
+
+            // ── Step update function ──────────────────────────────────────────
+            function setNcaStep(s) {
+                s = Math.max(0, Math.min(s, nSteps));
+                slider.value     = s;
+                stepDisplay.textContent = `step ${s}`;
+
+                // Update pair canvases + acc labels
+                pairCanvases.forEach(({ ncaCanvas, cs, pair, accLbl }) => {
+                    const grid = pair.steps[s];
+                    if (grid) ncaDrawGrid(ncaCanvas, grid, cs);
+                    const acc = pair.accs?.[s] ?? 0;
+                    const isExact = acc >= 100;
+                    accLbl.textContent = `pair ${pairCanvases.indexOf(arguments[0])} — ${acc.toFixed(1)}%`;
+                    // rebuild label text properly
+                    const pi = pairCanvases.findIndex(pc => pc === arguments[0]);
+                    accLbl.textContent = `pair ${pairCanvases.findIndex(pc => pc.ncaCanvas === ncaCanvas)} — ${acc.toFixed(1)}%`;
+                    accLbl.className = 'nca-pair-acc' + (isExact ? ' exact' : '');
+                });
+
+                // Update test canvas
+                if (testNcaCanvas && testData.steps[s]) {
+                    ncaDrawGrid(testNcaCanvas, testData.steps[s], testCs);
+                }
+
+                // Update acc bars
+                accBars.forEach((bar, i) => bar.classList.toggle('current', i === s));
+            }
+
+            // playback
+            let playing = false, playTimer = null;
+            playBtn.addEventListener('click', () => {
+                playing = !playing;
+                if (playing) {
+                    playBtn.textContent = '⏸ pause';
+                    playBtn.classList.add('playing');
+                    const cur = parseInt(slider.value);
+                    if (cur >= nSteps) setNcaStep(0);
+                    playTimer = setInterval(() => {
+                        const next = parseInt(slider.value) + 1;
+                        if (next > nSteps) { clearInterval(playTimer); playing = false; playBtn.textContent = '▶ play'; playBtn.classList.remove('playing'); return; }
+                        setNcaStep(next);
+                    }, 180);
+                } else {
+                    clearInterval(playTimer);
+                    playBtn.textContent = '▶ play';
+                    playBtn.classList.remove('playing');
+                }
+            });
+            slider.addEventListener('input', () => {
+                clearInterval(playTimer); playing = false;
+                playBtn.textContent = '▶ play'; playBtn.classList.remove('playing');
+                setNcaStep(parseInt(slider.value));
+            });
+
+            setNcaStep(nSteps);  // jump to final step by default — most informative
+            section.style.display = 'block';
+        }
 
         // -- Tracking (the original vibe developer put in; you can remove)
         async function addInfoToBackend() {
