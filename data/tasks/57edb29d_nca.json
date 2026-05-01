@@ -1,1 +1,1 @@
-{"task_id": "57edb29d", "status": "skipped", "reason": "no same-shape input/output pairs", "config": {"epochs": 2000, "steps": 25, "lr": 0.001, "hidden": 32}, "best_loss": null, "pairs": [], "test": null}
+{"task_id": "57edb29d", "status": "skipped", "reason": "no same-shape input/output pairs", "nca_version": "v2", "config": {"epochs": 2000, "steps": 32, "lr": 0.001, "hidden": 32, "timeout_s": 120}, "best_loss": null, "pairs": [], "test": null}
