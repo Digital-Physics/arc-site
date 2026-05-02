@@ -2318,9 +2318,10 @@
                 tgtWrap.className = 'nca-pair-block';
                 const tgtLbl = document.createElement('div'); tgtLbl.className = 'nca-pair-label'; tgtLbl.textContent = 'target';
                 const tgtCanvas = ncaMakeCanvas(h, w, cs);
-                ncaDrawGrid(tgtCanvas, pair.target, cs);
+                // ncaDrawGrid(tgtCanvas, pair.target, cs);
                 tgtWrap.appendChild(tgtLbl); tgtWrap.appendChild(tgtCanvas);
                 gridsRow.appendChild(tgtWrap);
+                ncaDrawGrid(tgtCanvas, pair.target, cs);  // draw AFTER appended
 
                 block.appendChild(gridsRow);
                 pairsRowEl.appendChild(block);
