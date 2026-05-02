@@ -2183,8 +2183,6 @@
             const cfg      = data.config   ?? {};
             const pairs    = (data.pairs   ?? []).filter(p => !p.skipped && p.steps && p.steps.length);
             const testData = data.test;
-            // Add this line right after const testData = data.test;
-            if (testData && Array.isArray(testData.target?.[0]?.[0])) testData.target = testData.target[0];
             const nSteps   = cfg.steps ?? (pairs[0]?.steps?.length ? pairs[0].steps.length - 1 : 0);
 
             // Summary row
@@ -2277,8 +2275,13 @@
             const pairCanvases = [];  // [{ncaCanvas, cs, pair, accLabel}]
 
             pairs.forEach((pair, pi) => {
+                // Input uses its own dimensions
                 const h  = pair.input.length,  w  = pair.input[0].length;
-                const cs = ncaCellSize(h, w);
+                const csIn = ncaCellSize(h, w);
+                // NCA output and target use output dimensions (step 1+ size)
+                const ncaStep = pair.steps.length > 1 ? pair.steps[1] : pair.steps[0];
+                const hOut = ncaStep.length, wOut = ncaStep[0].length;
+                const csOut = ncaCellSize(hOut, wOut);
 
                 const block = document.createElement('div');
                 block.className = 'nca-pair-block';
@@ -2291,49 +2294,52 @@
                 const gridsRow = document.createElement('div');
                 gridsRow.className = 'nca-grids-inline';
 
-                // Input (static)
+                // Input (static — shown at input dimensions)
                 const inWrap = document.createElement('div');
                 inWrap.className = 'nca-pair-block';
                 const inLbl = document.createElement('div'); inLbl.className = 'nca-pair-label'; inLbl.textContent = 'input';
-                const inCanvas = ncaMakeCanvas(h, w, cs);
-                ncaDrawGrid(inCanvas, pair.input, cs);
+                const inCanvas = ncaMakeCanvas(h, w, csIn);
+                ncaDrawGrid(inCanvas, pair.input, csIn);
                 inWrap.appendChild(inLbl); inWrap.appendChild(inCanvas);
                 gridsRow.appendChild(inWrap);
 
                 const arr1 = document.createElement('span'); arr1.className = 'nca-arrow'; arr1.textContent = '→';
                 gridsRow.appendChild(arr1);
 
-                // NCA output (animated)
+                // NCA output (animated — shown at output dimensions)
                 const ncaWrap = document.createElement('div');
                 ncaWrap.className = 'nca-pair-block';
                 const ncaLbl = document.createElement('div'); ncaLbl.className = 'nca-pair-label'; ncaLbl.textContent = 'NCA';
-                const ncaCanvas = ncaMakeCanvas(h, w, cs);
-                ncaDrawGrid(ncaCanvas, pair.steps[0], cs);
+                const ncaCanvas = ncaMakeCanvas(hOut, wOut, csOut);
                 ncaWrap.appendChild(ncaLbl); ncaWrap.appendChild(ncaCanvas);
                 gridsRow.appendChild(ncaWrap);
 
                 const arr2 = document.createElement('span'); arr2.className = 'nca-arrow'; arr2.textContent = 'vs';
                 gridsRow.appendChild(arr2);
 
-                // Target (static)
+                // Target (static — shown at output dimensions)
                 const tgtWrap = document.createElement('div');
                 tgtWrap.className = 'nca-pair-block';
                 const tgtLbl = document.createElement('div'); tgtLbl.className = 'nca-pair-label'; tgtLbl.textContent = 'target';
-                const tgtCanvas = ncaMakeCanvas(h, w, cs);
+                const tgtCanvas = ncaMakeCanvas(hOut, wOut, csOut);
                 tgtWrap.appendChild(tgtLbl); tgtWrap.appendChild(tgtCanvas);
                 gridsRow.appendChild(tgtWrap);
-                // target drawn in setNcaStep after body is in DOM
 
                 block.appendChild(gridsRow);
                 pairsRowEl.appendChild(block);
-                pairCanvases.push({ ncaCanvas, cs, pair, accLbl, tgtCanvas });
+                pairCanvases.push({ ncaCanvas, csOut, pair, accLbl, tgtCanvas });
             });
             body.appendChild(pairsRowEl);
 
             // ── Test section ──────────────────────────────────────────────────
             let testNcaCanvas = null, testCs = null;
             if (testData && testData.steps && testData.steps.length) {
-                const th = testData.steps[0].length, tw = testData.steps[0][0].length;
+                // Input canvas uses actual input dimensions
+                const tiH = testData.input.length, tiW = testData.input[0].length;
+                const tiCs = ncaCellSize(tiH, tiW);
+                // NCA output uses step 1+ dimensions (output size)
+                const testNcaStep = testData.steps.length > 1 ? testData.steps[1] : testData.steps[0];
+                const th = testNcaStep.length, tw = testNcaStep[0].length;
                 testCs = ncaCellSize(th, tw);
 
                 const testSectionTitle = document.createElement('div');
@@ -2345,33 +2351,35 @@
                 const testRow = document.createElement('div');
                 testRow.className = 'nca-test-row';
 
-                // Test input (static)
+                // Test input (static — shown at input dimensions)
                 const tiBlock = document.createElement('div'); tiBlock.className = 'nca-test-block';
                 const tiLbl   = document.createElement('div'); tiLbl.className = 'nca-test-label'; tiLbl.textContent = 'input';
-                const tiCanvas = ncaMakeCanvas(th, tw, testCs);
-                ncaDrawGrid(tiCanvas, testData.input, testCs);
+                const tiCanvas = ncaMakeCanvas(tiH, tiW, tiCs);
+                ncaDrawGrid(tiCanvas, testData.input, tiCs);
                 tiBlock.appendChild(tiLbl); tiBlock.appendChild(tiCanvas);
                 testRow.appendChild(tiBlock);
 
                 const arr = document.createElement('span'); arr.className = 'nca-arrow'; arr.textContent = '→';
                 testRow.appendChild(arr);
 
-                // NCA output (animated)
+                // NCA output (animated — shown at output dimensions)
                 const tnBlock  = document.createElement('div'); tnBlock.className = 'nca-test-block';
                 const tnLbl    = document.createElement('div'); tnLbl.className = 'nca-test-label'; tnLbl.textContent = 'NCA output';
                 testNcaCanvas  = ncaMakeCanvas(th, tw, testCs);
-                ncaDrawGrid(testNcaCanvas, testData.steps[0], testCs);
+                ncaDrawGrid(testNcaCanvas, testNcaStep, testCs);
                 tnBlock.appendChild(tnLbl); tnBlock.appendChild(testNcaCanvas);
                 testRow.appendChild(tnBlock);
 
-                // Target (if available)
+                // Target (if available — shown at output dimensions)
                 if (testData.target) {
+                    const tgtH = testData.target.length, tgtW = testData.target[0].length;
+                    const tgtCs = ncaCellSize(tgtH, tgtW);
                     const arr2 = document.createElement('span'); arr2.className = 'nca-arrow'; arr2.textContent = 'vs';
                     testRow.appendChild(arr2);
                     const ttBlock  = document.createElement('div'); ttBlock.className = 'nca-test-block';
                     const ttLbl    = document.createElement('div'); ttLbl.className = 'nca-test-label'; ttLbl.textContent = 'target';
-                    const ttCanvas = ncaMakeCanvas(th, tw, testCs);
-                    ncaDrawGrid(ttCanvas, testData.target, testCs);
+                    const ttCanvas = ncaMakeCanvas(tgtH, tgtW, tgtCs);
+                    ncaDrawGrid(ttCanvas, testData.target, tgtCs);
                     ttBlock.appendChild(ttLbl); ttBlock.appendChild(ttCanvas);
                     testRow.appendChild(ttBlock);
                 }
@@ -2385,11 +2393,11 @@
                 slider.value     = s;
                 stepDisplay.textContent = `step ${s}`;
 
-                // Update pair canvases + acc labels + target
-                pairCanvases.forEach(({ ncaCanvas, cs, pair, accLbl, tgtCanvas }, pi) => {
+                // Update pair canvases + acc labels
+                pairCanvases.forEach(({ ncaCanvas, csOut, pair, accLbl, tgtCanvas }, pi) => {
                     const grid = pair.steps[s];
-                    if (grid) ncaDrawGrid(ncaCanvas, grid, cs);
-                    if (tgtCanvas) ncaDrawGrid(tgtCanvas, pair.target, cs);
+                    if (grid) ncaDrawGrid(ncaCanvas, grid, csOut);
+                    if (tgtCanvas) ncaDrawGrid(tgtCanvas, pair.target, csOut);
                     const acc = pair.accs?.[s] ?? 0;
                     const isExact = acc >= 100;
                     accLbl.textContent = `pair ${pi} — ${acc.toFixed(1)}%`;
