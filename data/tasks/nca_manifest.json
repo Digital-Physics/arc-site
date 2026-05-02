@@ -1,7 +1,15 @@
 {
   "key": "epochs=2000,steps=32,hidden=32,lr=0.001,device=cpu",
   "completed": [
-    "00576224"
+    "00576224",
+    "007bbfb7",
+    "009d5c81",
+    "00d62c1b",
+    "00dbd492",
+    "017c7c7b",
+    "025d127b",
+    "03560426",
+    "0520fde7"
   ],
-  "count": 1
+  "count": 9
 }
