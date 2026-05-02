@@ -2318,10 +2318,9 @@
                 tgtWrap.className = 'nca-pair-block';
                 const tgtLbl = document.createElement('div'); tgtLbl.className = 'nca-pair-label'; tgtLbl.textContent = 'target';
                 const tgtCanvas = ncaMakeCanvas(h, w, cs);
-                // ncaDrawGrid(tgtCanvas, pair.target, cs);
                 tgtWrap.appendChild(tgtLbl); tgtWrap.appendChild(tgtCanvas);
                 gridsRow.appendChild(tgtWrap);
-                ncaDrawGrid(tgtCanvas, pair.target, cs);  // draw AFTER appended
+                // target drawn in setNcaStep after body is in DOM
 
                 block.appendChild(gridsRow);
                 pairsRowEl.appendChild(block);
@@ -2384,16 +2383,14 @@
                 slider.value     = s;
                 stepDisplay.textContent = `step ${s}`;
 
-                // Update pair canvases + acc labels
-                pairCanvases.forEach(({ ncaCanvas, cs, pair, accLbl }) => {
+                // Update pair canvases + acc labels + target
+                pairCanvases.forEach(({ ncaCanvas, cs, pair, accLbl, tgtCanvas }, pi) => {
                     const grid = pair.steps[s];
                     if (grid) ncaDrawGrid(ncaCanvas, grid, cs);
+                    if (tgtCanvas) ncaDrawGrid(tgtCanvas, pair.target, cs);
                     const acc = pair.accs?.[s] ?? 0;
                     const isExact = acc >= 100;
-                    accLbl.textContent = `pair ${pairCanvases.indexOf(arguments[0])} — ${acc.toFixed(1)}%`;
-                    // rebuild label text properly
-                    const pi = pairCanvases.findIndex(pc => pc === arguments[0]);
-                    accLbl.textContent = `pair ${pairCanvases.findIndex(pc => pc.ncaCanvas === ncaCanvas)} — ${acc.toFixed(1)}%`;
+                    accLbl.textContent = `pair ${pi} — ${acc.toFixed(1)}%`;
                     accLbl.className = 'nca-pair-acc' + (isExact ? ' exact' : '');
                 });
 
