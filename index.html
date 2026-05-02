@@ -2183,6 +2183,8 @@
             const cfg      = data.config   ?? {};
             const pairs    = (data.pairs   ?? []).filter(p => !p.skipped && p.steps && p.steps.length);
             const testData = data.test;
+            // Add this line right after const testData = data.test;
+            if (testData && Array.isArray(testData.target?.[0]?.[0])) testData.target = testData.target[0];
             const nSteps   = cfg.steps ?? (pairs[0]?.steps?.length ? pairs[0].steps.length - 1 : 0);
 
             // Summary row
