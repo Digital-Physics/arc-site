@@ -978,7 +978,6 @@
             display: flex;
             gap: 2px;
             align-items: flex-end;
-            height: 36px;
             margin-bottom: 16px;
             overflow-x: auto;
             padding-bottom: 2px;
@@ -988,6 +987,7 @@
             flex: 1;
             min-width: 3px;
             max-width: 12px;
+            height: 36px;
             background: var(--border);
             border-radius: 2px 2px 0 0;
             cursor: pointer;
@@ -2451,14 +2451,14 @@
             const pairSlots = [];
 
             pairs.forEach((pair, pi) => {
-                const ncaStep0 = pair.steps.length > 1 ? pair.steps[1] : pair.steps[0];
+                const ncaStep0 = pair.steps[0];
 
                 const block = document.createElement('div');
                 block.className = 'nca-pair-block';
 
                 const accLbl = document.createElement('div');
                 accLbl.className = 'nca-pair-acc' + (pair.exact ? ' exact' : '');
-                accLbl.textContent = `pair ${pi} — ${(pair.accs?.[0] ?? 0).toFixed(1)}%`;
+                accLbl.textContent = `pair ${pi} — ${(pair.accs?.[1] ?? pair.accs?.[0] ?? 0).toFixed(1)}%`;
                 block.appendChild(accLbl);
 
                 const gridsRow = document.createElement('div');
