@@ -2423,10 +2423,14 @@
             controlsEl.appendChild(slider);
             body.appendChild(controlsEl);
 
-            // ── Acc track (bars, one per step, using pair 0's accs) ───────────
+            // ── Acc track — per-step accuracy, test case preferred ────────────
             const trackEl = document.createElement('div');
             trackEl.className = 'nca-acc-track';
-            const refAccs = pairs[0]?.accs ?? [];
+            const refAccs = testData?.accs ?? pairs[0]?.accs ?? [];
+            const hasTestAccs = !!(testData?.accs?.length);
+            const trackLabel = document.createElement('div');
+            trackLabel.style.cssText = 'font-size:9px;color:var(--muted);margin-bottom:2px';
+            trackLabel.textContent = hasTestAccs ? 'test accuracy per step' : 'train pair 0 accuracy per step (no test ground truth)';
             const accBars = [];
             for (let s = 0; s <= nSteps; s++) {
                 const bar = document.createElement('div');
@@ -2440,6 +2444,7 @@
                 trackEl.appendChild(bar);
                 accBars.push(bar);
             }
+            body.appendChild(trackLabel);
             body.appendChild(trackEl);
 
             // ── Training pairs (div grids — same style as DSL) ───────────────
@@ -2458,7 +2463,7 @@
 
                 const accLbl = document.createElement('div');
                 accLbl.className = 'nca-pair-acc' + (pair.exact ? ' exact' : '');
-                accLbl.textContent = `pair ${pi} — ${(pair.accs?.[1] ?? pair.accs?.[0] ?? 0).toFixed(1)}%`;
+                accLbl.textContent = `pair ${pi} — ${(pair.accs?.[0] ?? 0).toFixed(1)}%`;
                 block.appendChild(accLbl);
 
                 const gridsRow = document.createElement('div');
@@ -2597,7 +2602,7 @@
                 setNcaStep(parseInt(slider.value));
             });
 
-            setNcaStep(nSteps);  // jump to final step by default — most informative
+            setNcaStep(0);  // start at time 0 — the true initial NCA state
             section.style.display = 'block';
 
             // ── Inject NCA output as Guess 2 in the guesses row ──────────────
