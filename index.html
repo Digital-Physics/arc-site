@@ -1072,8 +1072,8 @@
             padding: 10px;
         }
 
-        /* ── Question mark placeholder grid ── */
-        .question-grid {
+        /* ── Question mark placeholder ── */
+        .question-placeholder {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1081,20 +1081,16 @@
             border: 2px dashed var(--border);
             border-radius: var(--radius);
             color: var(--muted);
-            font-size: 28px;
+            font-size: 2em;
             font-family: var(--mono);
             user-select: none;
         }
 
-        /* ── Test solution display ── */
-        .test-solution-block {
-            margin-top: 16px;
-        }
+        /* ── NCA guess label color ── */
+        .guess-label.guess-nca { color: var(--accent3); }
 
-        /* ── NCA guess label ── */
-        .guess-label.guess-nca {
-            color: var(--accent3);
-        }
+        /* ── Test solution label color ── */
+        .guess-label.guess-solution { color: var(--accent); }
 
         /* ── responsive ── */
         @media (max-width: 600px) {
@@ -1911,7 +1907,7 @@
                 trainEl.appendChild(block);
             });
 
-            // ── Test inputs + question mark placeholder ───────────────
+            // ── Test inputs ───────────────────────────────────────────
             const testEl = document.getElementById('modal-test-input');
             testEl.innerHTML = '';
             (taskData.test_inputs ?? []).forEach((inp, i) => {
@@ -1926,18 +1922,18 @@
                 arr.className = 'pair-arrow';
                 arr.textContent = '→';
                 row.appendChild(arr);
-                // Question mark placeholder
-                const h = inp.length, w = inp[0].length;
-                const qGrid = document.createElement('div');
-                qGrid.className = 'question-grid';
-                qGrid.style.cssText = `width:${w*cs}px;height:${h*cs}px`;
-                qGrid.textContent = '?';
-                row.appendChild(qGrid);
+                // Question mark placeholder sized to match input
+                const h = inp.length, w = inp[0]?.length ?? inp.length;
+                const qEl = document.createElement('div');
+                qEl.className = 'question-placeholder';
+                qEl.style.cssText = `width:${w*cs}px;height:${h*cs}px`;
+                qEl.textContent = '?';
+                row.appendChild(qEl);
                 block.appendChild(row);
                 testEl.appendChild(block);
             });
 
-            // ── Guesses (beam guess 1 + NCA guess) ───────────────────
+            // ── Guesses ───────────────────────────────────────────────
             const allGuesses = task.guesses ?? [];
             const allSteps   = task.steps   ?? [];
             const guessSection = document.getElementById('modal-guesses-section');
@@ -1964,82 +1960,65 @@
                     const row = document.createElement('div');
                     row.className = 'guesses-row';
 
-                    // Guess 1 — beam search best
-                    const g0 = testGuesses[0];
-                    if (g0) {
-                        const cs = cellSizeFor(g0);
+                    testGuesses.forEach((g, attemptIdx) => {
+                        if (attemptIdx > 0 &&
+                            JSON.stringify(g) === JSON.stringify(testGuesses[attemptIdx - 1])) return;
+
+                        const cs = cellSizeFor(g);
                         const block = document.createElement('div');
                         block.className = 'guess-block';
+
+                        // Label — note if this guess was the one that solved the task
                         const label = document.createElement('div');
-                        label.className = 'guess-label';
-                        const stepStr = allSteps[testIdx]?.[0] ?? '';
-                        label.textContent = 'Guess 1 (beam)';
+                        label.className = `guess-label${attemptIdx === 1 ? ' guess-2' : ''}`;
+                        const stepStr = allSteps[testIdx]?.[attemptIdx] ?? '';
+                        const isFallbackStep = FALLBACK_STEPS.has(stepStr.split(' → ').pop()?.trim() ?? '');
+                        label.textContent = `Guess ${attemptIdx + 1}${isFallbackStep ? ' (fallback)' : ''}`;
                         block.appendChild(label);
+
                         const inner = document.createElement('div');
                         inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
-                        inner.appendChild(makeGrid(g0, cs));
+                        inner.appendChild(makeGrid(g, cs));
+
                         if (stepStr) {
                             const chainWrap = document.createElement('div');
                             renderStepChain(stepStr, chainWrap);
                             inner.appendChild(chainWrap);
                         }
+
                         block.appendChild(inner);
                         row.appendChild(block);
-                    }
-
-                    // Guess 2 — NCA prediction (fetched from sidecar, set later)
-                    const ncaBlock = document.createElement('div');
-                    ncaBlock.className = 'guess-block';
-                    const ncaLabel = document.createElement('div');
-                    ncaLabel.className = 'guess-label guess-nca';
-                    ncaLabel.textContent = 'Guess 2 (NCA)';
-                    ncaBlock.appendChild(ncaLabel);
-                    const ncaPlaceholder = document.createElement('div');
-                    ncaPlaceholder.style.cssText = 'font-size:11px;color:var(--muted)';
-                    ncaPlaceholder.textContent = 'loading…';
-                    ncaBlock.appendChild(ncaPlaceholder);
-                    ncaBlock.dataset.testIdx = testIdx;
-                    ncaBlock.id = `nca-guess-block-${testIdx}`;
-                    row.appendChild(ncaBlock);
+                    });
 
                     displayEl.appendChild(row);
                 });
 
-                // Populate NCA guess from sidecar (already fetched by openModal)
-                // Will be filled in by renderNCASection
-            }
+                // NCA guess block — populated by renderNCASection when sidecar loads
+                const ncaRow = document.createElement('div');
+                ncaRow.className = 'guesses-row';
+                ncaRow.id = 'modal-nca-guess-row';
+                // placeholder shown until NCA loads
+                const ncaBlock = document.createElement('div');
+                ncaBlock.className = 'guess-block';
+                ncaBlock.id = 'modal-nca-guess-block';
+                const ncaLbl = document.createElement('div');
+                ncaLbl.className = 'guess-label guess-nca';
+                ncaLbl.textContent = 'Guess 2 (NCA)';
+                ncaBlock.appendChild(ncaLbl);
+                const ncaPending = document.createElement('div');
+                ncaPending.id = 'modal-nca-guess-pending';
+                ncaPending.style.cssText = 'font-size:11px;color:var(--muted);margin-top:4px';
+                ncaPending.textContent = 'loading…';
+                ncaBlock.appendChild(ncaPending);
+                ncaRow.appendChild(ncaBlock);
+                displayEl.appendChild(ncaRow);
 
-            // ── Test solution ─────────────────────────────────────────
-            const testOutputs = taskData.test_outputs;
-            if (testOutputs && testOutputs.length > 0) {
-                const solSection = document.getElementById('modal-guesses-section');
-                const existing = document.getElementById('modal-test-solution');
-                if (existing) existing.remove();
-                const solDiv = document.createElement('div');
-                solDiv.id = 'modal-test-solution';
-                solDiv.className = 'test-solution-block';
-                const solTitle = document.createElement('div');
-                solTitle.className = 'modal-section-title';
-                solTitle.textContent = 'Test solution';
-                solDiv.appendChild(solTitle);
+                // Solution block — populated by renderNCASection
                 const solRow = document.createElement('div');
                 solRow.className = 'guesses-row';
-                testOutputs.forEach((sol, i) => {
-                    if (!sol) return;
-                    const cs = cellSizeFor(sol);
-                    const block = document.createElement('div');
-                    block.className = 'guess-block';
-                    const label = document.createElement('div');
-                    label.className = 'guess-label';
-                    label.style.color = 'var(--accent)';
-                    label.textContent = `Solution${testOutputs.length > 1 ? ` ${i}` : ''}`;
-                    block.appendChild(label);
-                    block.appendChild(makeGrid(sol, cs));
-                    solRow.appendChild(block);
-                });
-                solDiv.appendChild(solRow);
-                // Insert after guesses section
-                solSection.parentNode.insertBefore(solDiv, solSection.nextSibling);
+                solRow.id = 'modal-solution-row';
+                solRow.style.display = 'none';
+                displayEl.appendChild(solRow);
             }
 
             // ── Best attempt for unsolved tasks ───────────────────────
@@ -2256,6 +2235,38 @@
         function renderNCASection(data) {
             const section = document.getElementById('modal-nca-section');
             const body    = document.getElementById('modal-nca-body');
+
+            // ── Populate NCA guess block (test[0] final step) ─────────────────────
+            const ncaGuessBlock   = document.getElementById('modal-nca-guess-block');
+            const ncaGuessPending = document.getElementById('modal-nca-guess-pending');
+            const testData = data.test;
+            if (ncaGuessBlock && testData && testData.steps && testData.steps.length > 1) {
+                const finalStep = testData.steps[testData.steps.length - 1];
+                if (finalStep && finalStep.length) {
+                    const cs = cellSizeFor(finalStep);
+                    if (ncaGuessPending) ncaGuessPending.remove();
+                    ncaGuessBlock.appendChild(makeGrid(finalStep, cs));
+                }
+            } else if (ncaGuessPending && data.status !== 'ok') {
+                ncaGuessPending.textContent = data.status === 'skipped' ? 'skipped' : 'unavailable';
+            }
+
+            // ── Populate solution block from NCA sidecar test.target ─────────────
+            const solRow = document.getElementById('modal-solution-row');
+            if (solRow && testData && testData.target) {
+                const target = testData.target;
+                solRow.innerHTML = '';
+                const solBlock = document.createElement('div');
+                solBlock.className = 'guess-block';
+                const solLbl = document.createElement('div');
+                solLbl.className = 'guess-label guess-solution';
+                solLbl.textContent = 'Solution';
+                solBlock.appendChild(solLbl);
+                const cs = cellSizeFor(target);
+                solBlock.appendChild(makeGrid(target, cs));
+                solRow.appendChild(solBlock);
+                solRow.style.display = '';
+            }
 
             if (data.status === 'skipped') {
                 body.innerHTML = `<span style="font-size:11px;color:var(--muted)">skipped — ${data.reason ?? 'no same-shape pairs'}</span>`;
@@ -2522,23 +2533,6 @@
             });
 
             setNcaStep(nSteps);  // jump to final step by default — most informative
-
-            // ── Fill NCA guess block in guesses section ───────────────
-            const ncaGuessBlock = document.getElementById('nca-guess-block-0');
-            if (ncaGuessBlock && testData && testData.steps && testData.steps.length) {
-                const finalStep = testData.steps[testData.steps.length - 1];
-                if (finalStep && finalStep.length) {
-                    const cs = ncaCellSize(finalStep.length, finalStep[0].length);
-                    const canvas = ncaMakeCanvas(finalStep.length, finalStep[0].length, cs);
-                    // Replace placeholder with canvas
-                    const placeholder = ncaGuessBlock.querySelector('div[style*="loading"]');
-                    if (placeholder) placeholder.remove();
-                    ncaGuessBlock.appendChild(canvas);
-                    // Draw after appended
-                    ncaDrawGrid(canvas, finalStep, cs);
-                }
-            }
-
             section.style.display = 'block';
         }
 
