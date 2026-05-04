@@ -519,6 +519,10 @@
             flex-direction: column;
             gap: 6px;
             align-items: center;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            background: var(--surface2);
         }
 
         .pair-label {
@@ -543,6 +547,10 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            background: var(--surface2);
         }
 
         .guess-label {
@@ -553,7 +561,7 @@
         }
 
         .guess-label.guess-2 {
-            color: var(--accent2);
+            color: var(--accent3);
         }
 
         .guess-tab {
@@ -1183,6 +1191,27 @@
                 </div>
             </div>
 
+            <!-- ── NCA ANALYTICS ── -->
+            <div class="chart-title" style="margin-bottom:16px;margin-top:32px">NCA analytics</div>
+            <div class="analytics-grid">
+                <div class="analytics-card" style="grid-column: 1 / -1">
+                    <div class="analytics-card-title">NCA coverage &amp; training performance</div>
+                    <div id="analytics-nca-coverage" style="font-size:11px;color:var(--muted)">—</div>
+                </div>
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Exact-match rate</div>
+                    <div id="analytics-nca-exact" style="font-size:11px;color:var(--muted)">—</div>
+                </div>
+                <div class="analytics-card">
+                    <div class="analytics-card-title">Best-loss distribution</div>
+                    <div id="analytics-nca-loss" style="font-size:11px;color:var(--muted)">—</div>
+                </div>
+                <div class="analytics-card" style="grid-column: 1 / -1">
+                    <div class="analytics-card-title">Best train accuracy per task (histogram)</div>
+                    <div id="analytics-nca-hist" style="display:flex;align-items:flex-end;gap:4px;height:80px;padding-top:8px;overflow-x:auto"></div>
+                </div>
+            </div>
+
         </div>
 
         <!-- ── TASKS VIEW ── -->
@@ -1337,6 +1366,7 @@
             document.getElementById('stat-total').textContent = total;
 
             renderAnalytics();
+            renderNCAAnalytics();
         }
 
         function renderAnalytics() {
@@ -1486,6 +1516,127 @@
                     <br><span style="color:var(--muted);font-size:10px;display:block;margin-top:4px">${curr.solved} / ${curr.total} total</span>`;
             } else {
                 trendEl.innerHTML = '<span style="color:var(--muted)">need 2+ runs to show delta</span>';
+            }
+        }
+
+        }
+
+        function renderNCAAnalytics() {
+            if (!snapshot) return;
+            const tasks = snapshot.tasks ?? [];
+            // Gather NCA summary data from snapshot-level nca_summary field if present,
+            // or derive it from per-task nca fields (snapshot may embed nca stats per task).
+            const ncaSummary = snapshot.nca_summary ?? null;
+
+            // Per-task NCA fields (set by export script on each task object)
+            const ncaTasks = tasks.filter(t => t.nca != null);
+
+            // ── Coverage card ─────────────────────────────────────────────
+            const coverageEl = document.getElementById('analytics-nca-coverage');
+            if (ncaSummary) {
+                // Use pre-computed summary
+                const { total_ran, total_skipped, exact_count, mean_best_acc, mean_best_loss } = ncaSummary;
+                const total = total_ran + (total_skipped ?? 0);
+                const pct = total > 0 ? (100 * total_ran / total).toFixed(1) : '—';
+                coverageEl.innerHTML = `
+                    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11px;line-height:1.6">
+                        <span style="color:var(--muted)">tasks run</span><span>${total_ran} / ${total} (${pct}%)</span>
+                        <span style="color:var(--muted)">skipped</span><span>${total_skipped ?? '—'}</span>
+                        <span style="color:var(--muted)">exact match</span><span style="color:var(--accent)">${exact_count ?? '—'}</span>
+                        <span style="color:var(--muted)">mean best acc</span><span>${mean_best_acc != null ? mean_best_acc.toFixed(1) + '%' : '—'}</span>
+                        <span style="color:var(--muted)">mean best loss</span><span>${mean_best_loss != null ? mean_best_loss.toFixed(4) : '—'}</span>
+                    </div>`;
+            } else if (ncaTasks.length > 0) {
+                // Derive from per-task nca objects
+                const ran    = ncaTasks.filter(t => t.nca.status !== 'skipped' && t.nca.status !== 'error').length;
+                const skip   = ncaTasks.filter(t => t.nca.status === 'skipped').length;
+                const exact  = ncaTasks.filter(t => t.nca.any_exact).length;
+                const accs   = ncaTasks.map(t => t.nca.best_acc ?? 0).filter(a => a > 0);
+                const losses = ncaTasks.map(t => t.nca.best_loss).filter(v => v != null);
+                const meanAcc  = accs.length  ? (accs.reduce((a,b)=>a+b,0)/accs.length).toFixed(1)  : '—';
+                const meanLoss = losses.length ? (losses.reduce((a,b)=>a+b,0)/losses.length).toFixed(4) : '—';
+                coverageEl.innerHTML = `
+                    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11px;line-height:1.6">
+                        <span style="color:var(--muted)">tasks with NCA</span><span>${ncaTasks.length} / ${tasks.length}</span>
+                        <span style="color:var(--muted)">ran / skipped</span><span>${ran} / ${skip}</span>
+                        <span style="color:var(--muted)">exact match</span><span style="color:var(--accent)">${exact} tasks</span>
+                        <span style="color:var(--muted)">mean best acc</span><span>${meanAcc}${meanAcc !== '—' ? '%' : ''}</span>
+                        <span style="color:var(--muted)">mean best loss</span><span>${meanLoss}</span>
+                    </div>`;
+            } else {
+                coverageEl.innerHTML = '<span style="color:var(--muted)">no NCA data in snapshot yet — run NCA export to populate</span>';
+            }
+
+            // ── Exact match card ──────────────────────────────────────────
+            const exactEl = document.getElementById('analytics-nca-exact');
+            if (ncaTasks.length > 0) {
+                const exact  = ncaTasks.filter(t => t.nca.any_exact).length;
+                const pct    = (100 * exact / ncaTasks.length).toFixed(1);
+                const dsl_solved = tasks.filter(t => t.status === 'solved').length;
+                const both   = ncaTasks.filter(t => t.nca.any_exact && t.status === 'solved').length;
+                exactEl.innerHTML = `
+                    <div style="margin-bottom:10px">
+                        <span style="font-family:var(--display);font-size:1.6rem;font-weight:700;color:var(--accent)">${exact}</span>
+                        <span style="color:var(--muted);margin-left:6px">/ ${ncaTasks.length} tasks (${pct}%)</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:11px;line-height:1.5">
+                        <span style="color:var(--muted)">NCA exact + DSL solved</span><span style="color:var(--accent)">${both}</span>
+                        <span style="color:var(--muted)">NCA exact only (DSL failed)</span><span style="color:var(--accent3)">${exact - both}</span>
+                    </div>`;
+            } else if (ncaSummary?.exact_count != null) {
+                exactEl.innerHTML = `<span style="font-family:var(--display);font-size:1.6rem;font-weight:700;color:var(--accent)">${ncaSummary.exact_count}</span><span style="color:var(--muted);margin-left:6px">exact matches</span>`;
+            } else {
+                exactEl.innerHTML = '<span style="color:var(--muted)">—</span>';
+            }
+
+            // ── Loss distribution card ────────────────────────────────────
+            const lossEl = document.getElementById('analytics-nca-loss');
+            const losses = ncaTasks.map(t => t.nca.best_loss).filter(v => v != null && isFinite(v));
+            if (losses.length > 0) {
+                losses.sort((a,b) => a-b);
+                const p = p => losses[Math.min(losses.length-1, Math.floor(losses.length*p))];
+                lossEl.innerHTML = `
+                    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11px;line-height:1.6">
+                        <span style="color:var(--muted)">median</span><span>${p(0.5).toFixed(4)}</span>
+                        <span style="color:var(--muted)">p25</span><span>${p(0.25).toFixed(4)}</span>
+                        <span style="color:var(--muted)">p75</span><span>${p(0.75).toFixed(4)}</span>
+                        <span style="color:var(--muted)">p90</span><span>${p(0.9).toFixed(4)}</span>
+                        <span style="color:var(--muted)">min</span><span style="color:var(--accent)">${losses[0].toFixed(4)}</span>
+                        <span style="color:var(--muted)">max</span><span>${losses[losses.length-1].toFixed(4)}</span>
+                    </div>`;
+            } else {
+                lossEl.innerHTML = '<span style="color:var(--muted)">—</span>';
+            }
+
+            // ── Accuracy histogram ────────────────────────────────────────
+            const histEl = document.getElementById('analytics-nca-hist');
+            histEl.innerHTML = '';
+            const accs = ncaTasks.map(t => t.nca.best_acc ?? 0);
+            if (accs.length > 0) {
+                // Bucket into 10% bins: [0-10), [10-20), ... [90-100], plus exact(100)
+                const BINS = 10;
+                const counts = new Array(BINS).fill(0);
+                accs.forEach(a => {
+                    const bin = Math.min(BINS - 1, Math.floor(a / 10));
+                    counts[bin]++;
+                });
+                const maxCount = Math.max(...counts, 1);
+                const BAR_H = 64;
+                counts.forEach((count, bin) => {
+                    const label = `${bin*10}–${(bin+1)*10}%`;
+                    const barH = Math.max(count > 0 ? 3 : 0, Math.round(BAR_H * count / maxCount));
+                    const isHigh = bin >= 8;
+                    const pip = document.createElement('div');
+                    pip.className = 'depth-pip';
+                    pip.style.flex = '1';
+                    pip.innerHTML = `
+                        <span class="depth-pip-count" style="font-size:9px">${count || ''}</span>
+                        <div class="depth-pip-bar" style="height:${barH}px;width:100%;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}"></div>
+                        <span class="depth-pip-label" style="font-size:8px;white-space:nowrap">${label}</span>`;
+                    histEl.appendChild(pip);
+                });
+            } else {
+                histEl.innerHTML = '<span style="font-size:11px;color:var(--muted)">no NCA accuracy data yet</span>';
             }
         }
 
@@ -1888,7 +2039,29 @@
                 const block = document.createElement('div');
                 block.className = 'pair-block';
                 block.innerHTML = `<div class="pair-label">test ${i} input</div>`;
-                block.appendChild(makeGrid(inp, cs));
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;gap:8px;align-items:center';
+                row.appendChild(makeGrid(inp, cs));
+                const arr = document.createElement('span');
+                arr.className = 'pair-arrow';
+                arr.textContent = '→';
+                row.appendChild(arr);
+                // Question mark placeholder for the unknown output
+                const h = inp.length, w = inp[0]?.length ?? 1;
+                const qCanvas = document.createElement('canvas');
+                qCanvas.width = w * cs; qCanvas.height = h * cs;
+                qCanvas.style.cssText = `width:${w*cs}px;height:${h*cs}px;display:block;background:#111;border:1px dashed var(--border);border-radius:2px`;
+                const qCtx = qCanvas.getContext('2d');
+                qCtx.fillStyle = '#2a2a3a';
+                qCtx.fillRect(0, 0, qCanvas.width, qCanvas.height);
+                const fontSize = Math.max(12, Math.min(cs * 2, 40));
+                qCtx.fillStyle = '#6b6b88';
+                qCtx.font = `${fontSize}px Syne, sans-serif`;
+                qCtx.textAlign = 'center';
+                qCtx.textBaseline = 'middle';
+                qCtx.fillText('?', qCanvas.width / 2, qCanvas.height / 2);
+                row.appendChild(qCanvas);
+                block.appendChild(row);
                 testEl.appendChild(block);
             });
 
@@ -1919,35 +2092,45 @@
                     const row = document.createElement('div');
                     row.className = 'guesses-row';
 
-                    testGuesses.forEach((g, attemptIdx) => {
-                        if (attemptIdx > 0 &&
-                            JSON.stringify(g) === JSON.stringify(testGuesses[attemptIdx - 1])) return;
-
-                        const cs = cellSizeFor(g);
+                    // Guess 1 — Beam/DSL
+                    const g0 = testGuesses[0];
+                    if (g0) {
+                        const cs = cellSizeFor(g0);
                         const block = document.createElement('div');
                         block.className = 'guess-block';
 
-                        // Label — note if this guess was the one that solved the task
                         const label = document.createElement('div');
-                        label.className = `guess-label${attemptIdx === 1 ? ' guess-2' : ''}`;
-                        const stepStr = allSteps[testIdx]?.[attemptIdx] ?? '';
+                        label.className = 'guess-label';
+                        const stepStr = allSteps[testIdx]?.[0] ?? '';
                         const isFallbackStep = FALLBACK_STEPS.has(stepStr.split(' → ').pop()?.trim() ?? '');
-                        label.textContent = `Guess ${attemptIdx + 1}${isFallbackStep ? ' (fallback)' : ''}`;
+                        label.textContent = `Guess 1${isFallbackStep ? ' (fallback)' : ''}`;
                         block.appendChild(label);
 
                         const inner = document.createElement('div');
                         inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
-                        inner.appendChild(makeGrid(g, cs));
-
+                        inner.appendChild(makeGrid(g0, cs));
                         if (stepStr) {
                             const chainWrap = document.createElement('div');
                             renderStepChain(stepStr, chainWrap);
                             inner.appendChild(chainWrap);
                         }
-
                         block.appendChild(inner);
                         row.appendChild(block);
-                    });
+                    }
+
+                    // Guess 2 — NCA output (fetched separately and injected when available)
+                    const ncaGuessBlock = document.createElement('div');
+                    ncaGuessBlock.className = 'guess-block';
+                    ncaGuessBlock.dataset.ncaGuessTarget = testIdx;
+                    const ncaLabel = document.createElement('div');
+                    ncaLabel.className = 'guess-label guess-2';
+                    ncaLabel.textContent = 'Guess 2 (NCA)';
+                    ncaGuessBlock.appendChild(ncaLabel);
+                    const ncaPlaceholder = document.createElement('div');
+                    ncaPlaceholder.style.cssText = 'font-size:11px;color:var(--muted);padding:4px 0';
+                    ncaPlaceholder.textContent = 'loading NCA…';
+                    ncaGuessBlock.appendChild(ncaPlaceholder);
+                    row.appendChild(ncaGuessBlock);
 
                     displayEl.appendChild(row);
                 });
@@ -2111,6 +2294,12 @@
                 .catch(() => {
                     // Sidecar absent or not yet generated — hide section silently
                     document.getElementById('modal-nca-section').style.display = 'none';
+                    // Clear NCA guess placeholder
+                    const placeholder = document.querySelector('[data-nca-guess-target="0"]');
+                    if (placeholder) {
+                        const loadingEl = placeholder.querySelector('div[style*="color"]');
+                        if (loadingEl) loadingEl.textContent = 'no NCA data';
+                    }
                 });
         }
 
@@ -2441,6 +2630,31 @@
 
             setNcaStep(nSteps);  // jump to final step by default — most informative
             section.style.display = 'block';
+
+            // ── Inject NCA output as Guess 2 in the guesses row ──────────────
+            if (testData && testData.steps && testData.steps.length) {
+                const finalStep = testData.steps[testData.steps.length - 1];
+                const placeholder = document.querySelector('[data-nca-guess-target="0"]');
+                if (placeholder && finalStep) {
+                    const loadingEl = placeholder.querySelector('div[style*="color"]');
+                    if (loadingEl) loadingEl.remove();
+                    const th = finalStep.length, tw = finalStep[0]?.length ?? 0;
+                    const cs = ncaCellSize(th, tw);
+                    const canvas = ncaMakeCanvas(th, tw, cs);
+                    ncaDrawGrid(canvas, finalStep, cs);
+                    const inner = document.createElement('div');
+                    inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
+                    inner.appendChild(canvas);
+                    placeholder.appendChild(inner);
+                }
+            } else {
+                const placeholder = document.querySelector('[data-nca-guess-target="0"]');
+                if (placeholder) {
+                    const loadingEl = placeholder.querySelector('div[style*="color"]');
+                    if (loadingEl) loadingEl.textContent = 'no NCA test output';
+                }
+            }
+
         }
 
         // -- Tracking (the original vibe developer put in; you can remove)
