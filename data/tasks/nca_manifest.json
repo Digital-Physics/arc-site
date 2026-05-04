@@ -1,7 +1,0 @@
-{
-  "key": "epochs=2000,steps=32,hidden=32,lr=0.001,color_mode=auto  device=cpu",
-  "completed": [
-    "00576224"
-  ],
-  "count": 1
-}
