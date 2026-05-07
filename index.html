@@ -2206,7 +2206,8 @@
                 const stepStr0 = allSteps[0]?.[0] ?? '';
                 const nTrainM  = stepStr0.match(/\/(\d+)\)/);
                 const maxScore = partialEntries[0][1];
-                const nTrain   = nTrainM ? parseInt(nTrainM[1]) : Math.max(maxScore + 1, 3);
+                const nTrain   = nTrainM ? parseInt(nTrainM[1])
+                                         : (taskData.train?.length ?? maxScore);
 
                 partialEntries.forEach(([prog, score]) => {
                     const pct = Math.round(100 * score / nTrain);
