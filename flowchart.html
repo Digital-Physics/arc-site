@@ -293,9 +293,9 @@
   <text x="134" y="844" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--amber-sub)">context_ch=16 · random init</text>
 </g>
 <g class="node" data-id="cleanup">
-  <rect x="242" y="804" width="168" height="56" rx="8" fill="var(--amber-fill)" stroke="var(--amber-stroke)" stroke-width="0.5"/>
-  <text x="326" y="824" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--amber-title)">output cleanup</text>
-  <text x="326" y="844" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--amber-sub)">disabled — needs redesign</text>
+  <rect x="242" y="804" width="168" height="56" rx="8" fill="var(--coral-fill)" stroke="var(--coral-stroke)" stroke-width="0.5"/>
+  <text x="326" y="824" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--coral-title)">output cleanup</text>
+  <text x="326" y="844" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--coral-sub)">palette snap + isolated px</text>
 </g>
 
 <!-- ═══ 9b informed fallback ═══ -->
@@ -311,12 +311,24 @@
 <line x1="230" y1="920" x2="522" y2="920" stroke="var(--arr)" stroke-width="1"/>
 <line x1="370" y1="920" x2="370" y2="936" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
 
-<!-- ═══ 10 guess assembly ═══ -->
+<!-- ═══ 10 assemble ═══ -->
 <g class="node" data-id="assembly">
   <rect x="202" y="936" width="336" height="56" rx="8" fill="var(--bg2)" stroke="var(--border2)" stroke-width="0.5"/>
-  <text x="370" y="956" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text)">guess assembly</text>
-  <text x="370" y="976" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">dedup · NCA fills guess 2 slot</text>
+  <text x="370" y="956" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text)">assemble()</text>
+  <text x="370" y="976" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">reads all sidecars → snapshot</text>
 </g>
+
+<!-- solver sidecar label (right of assembly) -->
+<g class="node" data-id="solver_sidecar">
+  <rect x="558" y="920" width="124" height="72" rx="8" fill="var(--blue-fill)" stroke="var(--blue-stroke)" stroke-width="0.5"/>
+  <text x="620" y="943" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-title)">&lt;id&gt;_solver.json</text>
+  <text x="620" y="962" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-sub)">guesses · traces</text>
+  <text x="620" y="979" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-sub)">beam · timing</text>
+</g>
+<line x1="538" y1="956" x2="558" y2="956" stroke="var(--blue-stroke)" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+<line x1="620" y1="992" x2="620" y2="1004" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2"/>
+<line x1="538" y1="1004" x2="620" y2="1004" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2"/>
+<line x1="538" y1="992" x2="538" y2="1004" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)"/>
 <line x1="370" y1="992" x2="370" y2="1020" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
 
 <!-- ═══ 11 guesses ═══ -->
@@ -339,7 +351,7 @@
 <rect x="250" y="1114" width="10" height="10" rx="2" fill="var(--amber-fill)" stroke="var(--amber-stroke)" stroke-width="0.5"/>
 <text x="266" y="1123" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">needs revisiting ⚑</text>
 <text x="250" y="1143" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">hover any box for source + details</text>
-<text x="460" y="1123" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">dashed = not currently wired up</text>
+<text x="460" y="1123" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">dashed = not wired up / cache path</text>
 <text x="460" y="1143" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">⚑ = disabled or needs attention</text>
 </svg>
 </div>
@@ -364,7 +376,7 @@ const NODES = {
   },
   params: {
     file: 'arc_solver/infer_params.py → infer_output_guided_params()',
-    tip: 'Detects signals consistent across all training pairs: fg_color, diagonal_dir, shift_rule, key_body_signal, select_recolor_src/dst, marker_color, obj_* flags. Guides which steps are added to the beam menu and which parameterized programs are generated in pass 1. Also called in _solve_one_task() for snapshot diagnostics.',
+    tip: 'Detects signals consistent across all training pairs: fg_color, diagonal_dir, shift_rule, key_body_signal, select_recolor_src/dst, marker_color, obj_* flags. Guides which steps are added to the beam menu and which parameterized programs are generated in pass 1. Also called in _run_solver_for_task() for snapshot diagnostics.',
     flag: null
   },
   lookup: {
@@ -386,7 +398,7 @@ const NODES = {
   backward: {
     file: 'arc_solver/beam_search.py → build_step_menu() (invertible step markers)',
     tip: 'The concept: apply invertible steps (rotate, reflect, recolor, shift) to training outputs to create depth-1 backward target grids. Forward nodes matching a backward target can be completed with one more invertible step without extra beam depth, enabling bidirectional matching at each depth boundary.',
-    flag: '⚑ Not currently wired up. The word "backward" does not appear anywhere in search.py. build_step_menu() marks steps as invertible, but beam_search() does not appear to consume backward_states or run a backward sweep in the uploaded code. Worth implementing — or confirming the logic lives in a file not shared here.'
+    flag: '⚑ Not currently wired up. The word "backward" does not appear anywhere in search.py. build_step_menu() marks steps as invertible, but beam_search() does not appear to consume backward_states or run a backward sweep in the current code. Worth implementing.'
   },
   menu: {
     file: 'arc_solver/beam_search.py → build_step_menu()',
@@ -406,8 +418,8 @@ const NODES = {
   },
   'out-retry': { file: 'arc_solver/search.py → solver()', tip: 'Output from either the bg=0 retry beam or the near-miss post-pass extension, whichever finds an exact match first.', flag: null },
   nca: {
-    file: 'arc_solver/nca_export.py → run_nca_for_task()  |  export_results.py → _solve_one_task()',
-    tip: 'Trains NCAv2/v3 on all training pairs, then runs inference on the test input. Config: 2000 epochs, 25 steps (or "incrementing": 1→2→4→8→16→32→64, stops when all pairs exact), hidden=32, lr=1e-3. Color mode resolved via select_color_mode() if "auto". Skip logic: checks nca_manifest.json keyed by full config string — changed hyperparams trigger a full re-run. Runs after the solver so solver timing is unaffected.',
+    file: 'arc_solver/nca_export.py → run_nca_for_task()  |  export_results.py → _run_nca_for_task()',
+    tip: 'Trains NCAv2/v3 on all training pairs, then runs inference on test input. Config: 2000 epochs, 32 steps, hidden=32, lr=1e-3. Color mode resolved via select_color_mode() if "auto". Skips if <id>_nca.json exists (use --nca-force to overwrite). --start-from N skips tasks before index N or task ID — counter shows true position in full list. Manifest removed: skip logic is file-existence only.',
     flag: null
   },
   attn: {
@@ -416,23 +428,28 @@ const NODES = {
     flag: '⚑ Random init at eval time makes this context effectively noise. Either integrate ObjectAttention into the NCA training loop so it learns useful spatial structure, or disable it entirely (context_ch=0). Current form adds compute with no clear benefit.'
   },
   cleanup: {
-    file: 'arc_solver/nca_export.py — cleanup_nca_output (imported but disabled)',
-    tip: 'cleanup_nca_output is imported from nca_arc_v2 but never called. test_final_cleaned and final_cleaned are set to None in both the training-pair capture loop and the test capture section. The nca_solved check tests (steps[-1] == gt) OR (cleaned == gt), but cleaned is always None.',
-    flag: '⚑ Disabled in two places with the comment "Cleanup disabled — needs redesign for normal-color mode". The cleaned output scoring path is permanently dead code until this is redesigned. Worth either fixing or removing the dead branch.'
+    file: 'arc_solver/nca_export.py → _cleanup_output()',
+    tip: 'Two-pass post-processing in ARC color space (applied after any canonical→ARC inversion, so color-mode-agnostic). Pass 1 — palette snap: restricts cell values to colors appearing in any training output; stray values snapped to nearest palette color by integer distance. Pass 2 — isolated pixel removal: single-pixel islands surrounded by a uniform neighbour are replaced with that colour. Fully vectorised via numpy. Result stored as test.cleaned and scored separately from the raw final step.',
+    flag: null
   },
   fallback: {
     file: 'arc_solver/search.py → solver(), _distinct_fallback()',
     tip: 'Guess 1: if no true solve, uses beam_best (highest-scoring partial program from beam telemetry applied to test input) rather than echo_input — an informed wrong answer is better than an uninformed one. Guess 2: _distinct_fallback() tries rotate_180, then reflect_v, then best_partial, then invert_colors — returns the first result visually distinct from guess 1.',
     flag: null
   },
+  solver_sidecar: {
+    file: 'export_results.py → _run_solver_for_task() → write_solver_sidecar()',
+    tip: 'Writes <id>_solver.json after each task completes. Contains: guesses, steps, traces, partial_scores, beam_telemetry, timing, guided_params, gt_outputs, wall_s. Skipped if file exists (use --solver-force to overwrite). Read by assemble() to produce the snapshot without re-running the solver. Parallel to <id>_nca.json — same skip/force/start-from pattern.',
+    flag: null
+  },
   assembly: {
-    file: 'export_results.py → _solve_one_task(), run_and_collect()',
-    tip: 'Merges solver and NCA results. Deduplication via grids_equal(). NCA used as guess 2 if the solver found exactly 1 confirmed solve and nca_solved=True. If both solver and NCA solved, both kept (up to 2 guesses). partial_scores accumulates every program scoring >0 on training pairs for snapshot analytics: solved_by_step, partial_by_step, depth_dist.',
+    file: 'export_results.py → assemble()',
+    tip: 'Pure read + aggregate — no compute. Reads all <id>_solver.json + <id>_nca.json for all 1000 tasks. Scores each (solver exact match OR NCA raw/cleaned exact). Computes: solved_by_step, partial_by_step, depth_dist, guided_signals, nca_summary (with train_acc_dist, test_acc_dist, color_mode_counts, cleanup_only, nca_only_solved). Called automatically at end of --solver, --nca-only, and --full runs. Always uses full task list regardless of --start-from.',
     flag: null
   },
   output: {
-    file: 'export_results.py → run_and_collect() → snapshot JSON',
-    tip: 'Up to 2 grid guesses per test input with parallel program names. Snapshot fields per task: guesses[test_n][attempt], steps, traces, partial_scores, beam_telemetry, timing (lookup_s, pass1_s, beam_s, retry_s, postpass_s, total_s), nca_status, nca_solved, nca_best_acc. Snapshot-level: solved_by_step, partial_by_step, depth_dist, guided_signals, nca_summary.',
+    file: 'export_results.py → assemble() → YYYY-MM-DD.json + history.json',
+    tip: 'Snapshot per task: guesses[test_n][attempt], steps, traces, program, partial_scores, beam, nca (status, any_exact, raw_solved, cleaned_solved, best_acc, best_loss, test_acc, color_mode). Snapshot-level: score, solved_by_step, partial_by_step, depth_dist, guided_signals, nca_summary (with train_acc_dist, test_acc_dist, color_mode_counts). history.json appended for the progress chart.',
     flag: null
   }
 };

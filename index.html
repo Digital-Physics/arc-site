@@ -387,6 +387,13 @@
             color: var(--muted);
         }
 
+        .task-badge.nca {
+            background: #6aaeff12;
+            color: var(--accent3);
+            border: 1px solid #6aaeff28;
+            margin-left: 4px;
+        }
+
         .task-preview {
             display: flex;
             gap: 8px;
@@ -1210,6 +1217,10 @@
                     <div class="analytics-card-title">Best train accuracy per task (histogram)</div>
                     <div id="analytics-nca-hist" style="display:flex;align-items:flex-end;gap:4px;height:80px;padding-top:8px;overflow-x:auto"></div>
                 </div>
+                <div class="analytics-card" style="grid-column: 1 / -1">
+                    <div class="analytics-card-title">Test accuracy at final NCA step (histogram)</div>
+                    <div id="analytics-nca-test-hist" style="display:flex;align-items:flex-end;gap:4px;height:80px;padding-top:8px;overflow-x:auto"></div>
+                </div>
             </div>
 
         </div>
@@ -1222,6 +1233,7 @@
                 <button class="filter-btn" data-filter="solved" onclick="setFilter('solved',this)">Solved</button>
                 <button class="filter-btn" data-filter="unsolved" onclick="setFilter('unsolved',this)">Unsolved</button>
                 <button class="filter-btn" data-filter="near-miss" onclick="setFilter('near-miss',this)" title="unsolved tasks where beam best_score < 0.1 — i.e. the search got very close">Near-miss</button>
+                <button class="filter-btn" data-filter="nca-solved" onclick="setFilter('nca-solved',this)" title="tasks solved by NCA (DSL failed)">NCA-solved</button>
                 <span class="task-count" id="task-count"></span>
             </div>
             <div class="task-grid" id="task-grid">
@@ -1522,72 +1534,69 @@
         function renderNCAAnalytics() {
             if (!snapshot) return;
             const tasks = snapshot.tasks ?? [];
-            // Gather NCA summary data from snapshot-level nca_summary field if present,
-            // or derive it from per-task nca fields (snapshot may embed nca stats per task).
             const ncaSummary = snapshot.nca_summary ?? null;
-
-            // Per-task NCA fields (set by export script on each task object)
             const ncaTasks = tasks.filter(t => t.nca != null);
 
             // ── Coverage card ─────────────────────────────────────────────
             const coverageEl = document.getElementById('analytics-nca-coverage');
-            if (ncaSummary) {
-                // Use pre-computed summary (added by export script under snapshot.nca_summary)
-                const { total_ran, total_skipped, exact_count, mean_best_acc, mean_best_loss } = ncaSummary;
-                const total = total_ran + (total_skipped ?? 0);
-                const pct = total > 0 ? (100 * total_ran / total).toFixed(1) : '—';
+            if (ncaTasks.length > 0 || ncaSummary) {
+                const ran         = ncaSummary ? Object.entries(ncaSummary.status_counts ?? {})
+                                        .filter(([k]) => !k.includes('skipped') && !k.includes('error'))
+                                        .reduce((s,[,v]) => s+v, 0)
+                                    : ncaTasks.filter(t => t.nca.status && !t.nca.status.includes('skipped') && !t.nca.status.includes('error')).length;
+                const skipped     = ncaSummary ? Object.entries(ncaSummary.status_counts ?? {})
+                                        .filter(([k]) => k.includes('skipped'))
+                                        .reduce((s,[,v]) => s+v, 0)
+                                    : ncaTasks.filter(t => t.nca.status?.includes('skipped')).length;
+                const errored     = ncaSummary ? Object.entries(ncaSummary.status_counts ?? {})
+                                        .filter(([k]) => k.includes('error'))
+                                        .reduce((s,[,v]) => s+v, 0)
+                                    : ncaTasks.filter(t => t.nca.status?.includes('error')).length;
+                const exactCount  = ncaSummary?.exact_count  ?? ncaTasks.filter(t => t.nca.any_exact).length;
+                const ncaOnly     = ncaSummary?.nca_only_solved ?? 0;
+                const cleanupOnly = ncaSummary?.cleanup_only    ?? 0;
+                const meanAcc     = ncaSummary?.mean_best_acc;
+                const meanTestAcc = ncaSummary?.mean_test_acc;
+                const meanLoss    = ncaSummary?.mean_best_loss;
+                const colorCounts = ncaSummary?.color_mode_counts ?? {};
+                const colorStr    = Object.entries(colorCounts).sort((a,b)=>b[1]-a[1])
+                                        .map(([k,v]) => `${k}: ${v}`).join(' · ') || '—';
                 coverageEl.innerHTML = `
-                    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11px;line-height:1.6">
-                        <span style="color:var(--muted)">tasks run</span><span>${total_ran} / ${total} (${pct}%)</span>
-                        <span style="color:var(--muted)">skipped</span><span>${total_skipped ?? '—'}</span>
-                        <span style="color:var(--muted)">exact match</span><span style="color:var(--accent)">${exact_count ?? '—'}</span>
-                        <span style="color:var(--muted)">mean best acc</span><span>${mean_best_acc != null ? mean_best_acc.toFixed(1) + '%' : '—'}</span>
-                        <span style="color:var(--muted)">mean best loss</span><span>${mean_best_loss != null ? mean_best_loss.toFixed(4) : '—'}</span>
-                    </div>`;
-            } else if (ncaTasks.length > 0) {
-                // Derive from per-task nca objects (snapshot.tasks[].nca)
-                const ran    = ncaTasks.filter(t => t.nca.status !== 'skipped' && t.nca.status !== 'error').length;
-                const skip   = ncaTasks.filter(t => t.nca.status === 'skipped').length;
-                const exact  = ncaTasks.filter(t => t.nca.any_exact).length;
-                const accs   = ncaTasks.map(t => t.nca.best_acc ?? 0).filter(a => a > 0);
-                const losses = ncaTasks.map(t => t.nca.best_loss).filter(v => v != null);
-                const meanAcc  = accs.length  ? (accs.reduce((a,b)=>a+b,0)/accs.length).toFixed(1)  : '—';
-                const meanLoss = losses.length ? (losses.reduce((a,b)=>a+b,0)/losses.length).toFixed(4) : '—';
-                coverageEl.innerHTML = `
-                    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11px;line-height:1.6">
-                        <span style="color:var(--muted)">tasks with NCA</span><span>${ncaTasks.length} / ${tasks.length}</span>
-                        <span style="color:var(--muted)">ran / skipped</span><span>${ran} / ${skip}</span>
-                        <span style="color:var(--muted)">exact match</span><span style="color:var(--accent)">${exact} tasks</span>
-                        <span style="color:var(--muted)">mean best acc</span><span>${meanAcc}${meanAcc !== '—' ? '%' : ''}</span>
-                        <span style="color:var(--muted)">mean best loss</span><span>${meanLoss}</span>
+                    <div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:4px 20px;font-size:11px;line-height:1.7">
+                        <span style="color:var(--muted)">tasks ran</span><span>${ran}</span>
+                        <span style="color:var(--muted)">skipped / error</span><span>${skipped} / ${errored}</span>
+                        <span style="color:var(--muted)">exact (train)</span><span style="color:var(--accent)">${exactCount}</span>
+                        <span style="color:var(--muted)">NCA-only solved</span><span style="color:var(--accent3)">${ncaOnly}</span>
+                        <span style="color:var(--muted)">cleanup-only</span><span style="color:var(--accent3)">${cleanupOnly}</span>
+                        <span style="color:var(--muted)">mean train acc</span><span>${meanAcc != null ? meanAcc.toFixed(1)+'%' : '—'}</span>
+                        <span style="color:var(--muted)">mean test acc</span><span>${meanTestAcc != null ? meanTestAcc.toFixed(1)+'%' : '—'}</span>
+                        <span style="color:var(--muted)">mean loss</span><span>${meanLoss != null ? meanLoss.toFixed(4) : '—'}</span>
+                        <span style="color:var(--muted)">color modes</span><span style="grid-column:2/-1">${colorStr}</span>
                     </div>`;
             } else {
-                coverageEl.innerHTML = `
-                    <span style="color:var(--muted);font-size:11px">
-                        No NCA aggregate data found in snapshot yet.<br>
-                        <span style="opacity:0.7">The DSL analytics read from top-level snapshot fields
-                        (<code>solved_by_step</code>, <code>depth_dist</code>, etc.) that your export script writes.
-                        To populate NCA analytics, add a <code>nca_summary</code> key to the snapshot JSON
-                        (or per-task <code>task.nca</code> objects) in your export script —
-                        similar to how beam stats are written per task under <code>task.beam</code>.</span>
-                    </span>`;
+                coverageEl.innerHTML = `<span style="color:var(--muted);font-size:11px">No NCA data found in snapshot yet.</span>`;
             }
 
             // ── Exact match card ──────────────────────────────────────────
             const exactEl = document.getElementById('analytics-nca-exact');
             if (ncaTasks.length > 0) {
-                const exact  = ncaTasks.filter(t => t.nca.any_exact).length;
-                const pct    = (100 * exact / ncaTasks.length).toFixed(1);
-                const dsl_solved = tasks.filter(t => t.status === 'solved').length;
-                const both   = ncaTasks.filter(t => t.nca.any_exact && t.status === 'solved').length;
+                const exact      = ncaTasks.filter(t => t.nca.any_exact).length;
+                const pct        = (100 * exact / ncaTasks.length).toFixed(1);
+                const dslSolved  = tasks.filter(t => t.status === 'solved').length;
+                const both       = ncaTasks.filter(t => t.nca.any_exact && t.status === 'solved').length;
+                const ncaOnly    = ncaTasks.filter(t => t.nca.any_exact && t.status !== 'solved').length;
+                const rawOnly    = ncaTasks.filter(t => t.nca.raw_solved && !t.nca.cleaned_solved).length;
+                const cleanupWin = ncaTasks.filter(t => t.nca.cleaned_solved && !t.nca.raw_solved).length;
                 exactEl.innerHTML = `
                     <div style="margin-bottom:10px">
                         <span style="font-family:var(--display);font-size:1.6rem;font-weight:700;color:var(--accent)">${exact}</span>
-                        <span style="color:var(--muted);margin-left:6px">/ ${ncaTasks.length} tasks (${pct}%)</span>
+                        <span style="color:var(--muted);margin-left:6px">/ ${ncaTasks.length} (${pct}%)</span>
                     </div>
-                    <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:11px;line-height:1.5">
-                        <span style="color:var(--muted)">NCA exact + DSL solved</span><span style="color:var(--accent)">${both}</span>
-                        <span style="color:var(--muted)">NCA exact only (DSL failed)</span><span style="color:var(--accent3)">${exact - both}</span>
+                    <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:11px;line-height:1.6">
+                        <span style="color:var(--muted)">NCA + DSL both solved</span><span style="color:var(--accent)">${both}</span>
+                        <span style="color:var(--muted)">NCA only (DSL failed)</span><span style="color:var(--accent3)">${ncaOnly}</span>
+                        <span style="color:var(--muted)">raw output exact</span><span>${rawOnly + cleanupWin}</span>
+                        <span style="color:var(--muted)">cleanup rescued</span><span style="color:var(--accent3)">${cleanupWin}</span>
                     </div>`;
             } else if (ncaSummary?.exact_count != null) {
                 exactEl.innerHTML = `<span style="font-family:var(--display);font-size:1.6rem;font-weight:700;color:var(--accent)">${ncaSummary.exact_count}</span><span style="color:var(--muted);margin-left:6px">exact matches</span>`;
@@ -1614,36 +1623,44 @@
                 lossEl.innerHTML = '<span style="color:var(--muted)">—</span>';
             }
 
-            // ── Accuracy histogram ────────────────────────────────────────
-            const histEl = document.getElementById('analytics-nca-hist');
-            histEl.innerHTML = '';
-            const accs = ncaTasks.map(t => t.nca.best_acc ?? 0);
-            if (accs.length > 0) {
-                // Bucket into 10% bins: [0-10), [10-20), ... [90-100], plus exact(100)
+            // ── Accuracy histograms ───────────────────────────────────────
+            function renderAccHist(el, vals, label) {
+                el.innerHTML = '';
+                if (!vals || vals.length === 0) {
+                    el.innerHTML = `<span style="font-size:11px;color:var(--muted)">no ${label} data yet</span>`;
+                    return;
+                }
                 const BINS = 10;
                 const counts = new Array(BINS).fill(0);
-                accs.forEach(a => {
+                vals.forEach(a => {
                     const bin = Math.min(BINS - 1, Math.floor(a / 10));
                     counts[bin]++;
                 });
                 const maxCount = Math.max(...counts, 1);
                 const BAR_H = 64;
                 counts.forEach((count, bin) => {
-                    const label = `${bin*10}–${(bin+1)*10}%`;
-                    const barH = Math.max(count > 0 ? 3 : 0, Math.round(BAR_H * count / maxCount));
                     const isHigh = bin >= 8;
+                    const barH = Math.max(count > 0 ? 3 : 0, Math.round(BAR_H * count / maxCount));
                     const pip = document.createElement('div');
                     pip.className = 'depth-pip';
                     pip.style.flex = '1';
                     pip.innerHTML = `
                         <span class="depth-pip-count" style="font-size:9px">${count || ''}</span>
                         <div class="depth-pip-bar" style="height:${barH}px;width:100%;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}"></div>
-                        <span class="depth-pip-label" style="font-size:8px;white-space:nowrap">${label}</span>`;
-                    histEl.appendChild(pip);
+                        <span class="depth-pip-label" style="font-size:8px;white-space:nowrap">${bin*10}–${(bin+1)*10}%</span>`;
+                    el.appendChild(pip);
                 });
-            } else {
-                histEl.innerHTML = '<span style="font-size:11px;color:var(--muted)">no NCA accuracy data yet</span>';
             }
+
+            // Train acc histogram — use snapshot dist if available, else derive from per-task
+            const trainAccVals = ncaSummary?.train_acc_dist
+                ?? ncaTasks.map(t => t.nca.best_acc ?? 0);
+            renderAccHist(document.getElementById('analytics-nca-hist'), trainAccVals, 'train accuracy');
+
+            // Test acc histogram
+            const testAccVals = ncaSummary?.test_acc_dist
+                ?? ncaTasks.map(t => t.nca.test_acc).filter(v => v != null);
+            renderAccHist(document.getElementById('analytics-nca-test-hist'), testAccVals, 'test accuracy');
         }
 
         function renderLeaderboard() {
@@ -1819,9 +1836,10 @@
                 return (b.best_score ?? 99) < NEAR_MISS_THRESHOLD;
             };
             let tasks = snapshot.tasks.filter(t => {
-                if (activeFilter === 'solved'    && t.status !== 'solved') return false;
-                if (activeFilter === 'unsolved'  && t.status === 'solved') return false;
-                if (activeFilter === 'near-miss' && !isNearMiss(t))        return false;
+                if (activeFilter === 'solved'     && t.status !== 'solved') return false;
+                if (activeFilter === 'unsolved'   && t.status === 'solved') return false;
+                if (activeFilter === 'near-miss'  && !isNearMiss(t))        return false;
+                if (activeFilter === 'nca-solved' && t.solved_by !== 'nca') return false;
                 if (q && !t.id.toLowerCase().includes(q)) return false;
                 return true;
             });
@@ -1907,7 +1925,11 @@
                 card.innerHTML = `
       <div class="task-card-header">
         <span class="task-id">${task.id}</span>
-        <span class="task-badge ${task.status}">${task.status}</span>
+        <span style="display:flex;align-items:center;gap:4px">
+          <span class="task-badge ${task.status}">${task.status}</span>
+          ${task.solved_by === 'nca' ? '<span class="task-badge nca">NCA</span>' :
+            (task.nca?.any_exact && task.status !== 'solved') ? '<span class="task-badge nca" title="NCA reached exact match on training pairs">NCA✓</span>' : ''}
+        </span>
       </div>
       <div class="task-preview" style="min-height:40px"></div>
       ${nearMissRow}
@@ -2255,7 +2277,7 @@
         function openModal(task) {
             document.getElementById('modal-title').textContent = task.id;
             const meta = [];
-            meta.push(`status: <span style="color:${task.status === 'solved' ? 'var(--accent)' : 'var(--muted)'}">${task.status}</span>`);
+            meta.push(`status: <span style="color:${task.status === 'solved' ? 'var(--accent)' : 'var(--muted)'}">${task.status}</span>${task.solved_by ? ` <span style="font-size:10px;color:var(--muted)">(${task.solved_by})</span>` : ''}`);
             if (task.program) {
                 const { partialLabel, steps } = parseProgram(task.program);
                 const progDisplay = steps.join(' → ');
@@ -2369,6 +2391,9 @@
 
             const summaryEl = document.createElement('div');
             summaryEl.className = 'nca-summary-row';
+            const testAcc   = data.test?.accs?.length ? data.test.accs[data.test.accs.length - 1] : null;
+            const testExact = data.test?.cleaned_exact || (testAcc != null && testAcc >= 100);
+            const cleanedExact = data.test?.cleaned_exact;
             summaryEl.innerHTML = `
                 <div class="nca-stat">
                     <div class="nca-stat-label">Epochs</div>
@@ -2385,6 +2410,14 @@
                 <div class="nca-stat">
                     <div class="nca-stat-label">Best train acc</div>
                     <div class="nca-stat-value ${anyExact ? 'good' : ''}">${anyExact ? '✓ exact' : bestAcc.toFixed(1) + '%'}</div>
+                </div>
+                <div class="nca-stat">
+                    <div class="nca-stat-label">Test acc</div>
+                    <div class="nca-stat-value ${testExact ? 'good' : ''}">${testAcc != null ? testAcc.toFixed(1) + '%' + (testExact ? ' ✓' : '') : '—'}${cleanedExact && !testExact ? ' <span style="font-size:10px;color:var(--accent3)">(cleanup ✓)</span>' : ''}</div>
+                </div>
+                <div class="nca-stat">
+                    <div class="nca-stat-label">Color mode</div>
+                    <div class="nca-stat-value muted">${data.color_mode_used ?? cfg.color_mode ?? '—'}</div>
                 </div>
                 <div class="nca-stat">
                     <div class="nca-stat-label">Hidden ch</div>
