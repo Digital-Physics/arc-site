@@ -21262,7 +21262,7 @@
   },
   {
     "date": "2026-05-09",
-    "solved": 141,
+    "solved": 128,
     "total": 1000,
     "solved_by_step": {
       "tile_flip_000_111_000": 1,
