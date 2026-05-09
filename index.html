@@ -1674,7 +1674,8 @@
                     pip.style.flex = '1';
                     pip.innerHTML = `
                         <div style="position:relative;width:100%;height:${barH}px;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}">
-                            <span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--color-text-secondary);white-space:nowrap">${count || ''}</span>
+                            // <span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--color-text-secondary);white-space:nowrap">${count || ''}</span>
+                            <span style="position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:9px;color:#fff;white-space:nowrap">${count || ''}</span>
                         </div>
                         <span class="depth-pip-label" style="font-size:8px;white-space:nowrap">${bin*10}–${(bin+1)*10}%</span>`;
                     el.appendChild(pip);
