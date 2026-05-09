@@ -1454,10 +1454,15 @@
                 const barH = Math.max(4, Math.round(BAR_MAX_H * count / depthMax));
                 const pip = document.createElement('div');
                 pip.className = 'depth-pip';
+                // pip.innerHTML = `
+                //     <span class="depth-pip-count">${count}</span>
+                //     <div class="depth-pip-bar" style="height:${barH}px"></div>
+                //     <span class="depth-pip-label">${depth}-step</span>`;
                 pip.innerHTML = `
-                    <span class="depth-pip-count">${count}</span>
-                    <div class="depth-pip-bar" style="height:${barH}px"></div>
-                    <span class="depth-pip-label">${depth}-step</span>`;
+                    <div style="position:relative;width:100%;height:${barH}px;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}">
+                        <span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--color-text-secondary);white-space:nowrap">${count || ''}</span>
+                    </div>
+                    <span class="depth-pip-label" style="font-size:8px;white-space:nowrap">${bin*10}–${(bin+1)*10}%</span>`;
                 depthEl.appendChild(pip);
             });
             if (!depthEntries.length) depthEl.innerHTML =
