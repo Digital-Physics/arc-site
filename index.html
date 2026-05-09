@@ -1454,16 +1454,10 @@
                 const barH = Math.max(4, Math.round(BAR_MAX_H * count / depthMax));
                 const pip = document.createElement('div');
                 pip.className = 'depth-pip';
-                // pip.innerHTML = `
-                //     <span class="depth-pip-count">${count}</span>
-                //     <div class="depth-pip-bar" style="height:${barH}px"></div>
-                //     <span class="depth-pip-label">${depth}-step</span>`;
-                const isHigh = bin >= 8;
                 pip.innerHTML = `
-                    <div style="position:relative;width:100%;height:${barH}px;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}">
-                        <span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--color-text-secondary);white-space:nowrap">${count || ''}</span>
-                    </div>
-                    <span class="depth-pip-label" style="font-size:8px;white-space:nowrap">${bin*10}–${(bin+1)*10}%</span>`;
+                    <span class="depth-pip-count">${count}</span>
+                    <div class="depth-pip-bar" style="height:${barH}px"></div>
+                    <span class="depth-pip-label">${depth}-step</span>`;
                 depthEl.appendChild(pip);
             });
             if (!depthEntries.length) depthEl.innerHTML =
@@ -1630,8 +1624,36 @@
             }
 
             // ── Accuracy histograms ───────────────────────────────────────
+            // function renderAccHist(el, vals, label) {
+            //     el.innerHTML = '';
+            //     if (!vals || vals.length === 0) {
+            //         el.innerHTML = `<span style="font-size:11px;color:var(--muted)">no ${label} data yet</span>`;
+            //         return;
+            //     }
+            //     const BINS = 10;
+            //     const counts = new Array(BINS).fill(0);
+            //     vals.forEach(a => {
+            //         const bin = Math.min(BINS - 1, Math.floor(a / 10));
+            //         counts[bin]++;
+            //     });
+            //     const maxCount = Math.max(...counts, 1);
+            //     const BAR_H = 64;
+            //     counts.forEach((count, bin) => {
+            //         const isHigh = bin >= 8;
+            //         const barH = Math.max(count > 0 ? 3 : 0, Math.round(BAR_H * count / maxCount));
+            //         const pip = document.createElement('div');
+            //         pip.className = 'depth-pip';
+            //         pip.style.flex = '1';
+            //         pip.innerHTML = `
+            //             <span class="depth-pip-count" style="font-size:9px">${count || ''}</span>
+            //             <div class="depth-pip-bar" style="height:${barH}px;width:100%;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}"></div>
+            //             <span class="depth-pip-label" style="font-size:8px;white-space:nowrap">${bin*10}–${(bin+1)*10}%</span>`;
+            //         el.appendChild(pip);
+            //     });
+            // }
             function renderAccHist(el, vals, label) {
                 el.innerHTML = '';
+                el.style.cssText = 'display:flex;align-items:flex-end;gap:4px;height:80px;padding-top:16px;overflow-x:auto;position:relative';
                 if (!vals || vals.length === 0) {
                     el.innerHTML = `<span style="font-size:11px;color:var(--muted)">no ${label} data yet</span>`;
                     return;
@@ -1639,8 +1661,8 @@
                 const BINS = 10;
                 const counts = new Array(BINS).fill(0);
                 vals.forEach(a => {
-                    const bin = Math.min(BINS - 1, Math.floor(a / 10));
-                    counts[bin]++;
+                    const b = Math.min(BINS - 1, Math.floor(a / 10));
+                    counts[b]++;
                 });
                 const maxCount = Math.max(...counts, 1);
                 const BAR_H = 64;
@@ -1651,13 +1673,14 @@
                     pip.className = 'depth-pip';
                     pip.style.flex = '1';
                     pip.innerHTML = `
-                        <span class="depth-pip-count" style="font-size:9px">${count || ''}</span>
-                        <div class="depth-pip-bar" style="height:${barH}px;width:100%;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}"></div>
+                        <div style="position:relative;width:100%;height:${barH}px;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}">
+                            <span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--color-text-secondary);white-space:nowrap">${count || ''}</span>
+                        </div>
                         <span class="depth-pip-label" style="font-size:8px;white-space:nowrap">${bin*10}–${(bin+1)*10}%</span>`;
                     el.appendChild(pip);
                 });
             }
-
+            
             // Train acc histogram — use snapshot dist if available, else derive from per-task
             const trainAccVals = ncaSummary?.train_acc_dist
                 ?? ncaTasks.map(t => t.nca.best_acc ?? 0);
@@ -1797,9 +1820,6 @@
             el.className = 'arc-grid';
             el.style.setProperty('--cell-size', cellSize + 'px');
             el.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-
-            el.style.cssText = 'display:flex;align-items:flex-end;gap:4px;height:80px;padding-top:16px;overflow-x:auto;position:relative';
-
             data.forEach(row => row.forEach(val => {
                 const cell = document.createElement('div');
                 cell.className = 'arc-cell';
