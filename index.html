@@ -1668,7 +1668,7 @@
                 const maxBarH = Math.max(...counts.map(count =>
                     Math.max(count > 0 ? 3 : 0, Math.round(BAR_H * count / maxCount))
                 ), 0);
-                el.style.cssText = `display:flex;align-items:flex-end;gap:4px;height:${maxBarH + 20}px;padding-top:20px;overflow-x:auto;position:relative`;
+                el.style.cssText = `display:flex;align-items:flex-end;gap:4px;height:${maxBarH + 40}px;padding-top:20px;overflow-x:auto;position:relative`;
                 counts.forEach((count, bin) => {
                     const isHigh = bin >= 8;
                     const barH = Math.max(count > 0 ? 3 : 0, Math.round(BAR_H * count / maxCount));
