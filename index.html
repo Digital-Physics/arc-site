@@ -1458,6 +1458,7 @@
                 //     <span class="depth-pip-count">${count}</span>
                 //     <div class="depth-pip-bar" style="height:${barH}px"></div>
                 //     <span class="depth-pip-label">${depth}-step</span>`;
+                const isHigh = bin >= 8;
                 pip.innerHTML = `
                     <div style="position:relative;width:100%;height:${barH}px;background:${isHigh ? 'var(--accent)' : 'var(--accent3)'}">
                         <span style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--color-text-secondary);white-space:nowrap">${count || ''}</span>
@@ -1796,6 +1797,9 @@
             el.className = 'arc-grid';
             el.style.setProperty('--cell-size', cellSize + 'px');
             el.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+
+            el.style.cssText = 'display:flex;align-items:flex-end;gap:4px;height:80px;padding-top:16px;overflow-x:auto;position:relative';
+
             data.forEach(row => row.forEach(val => {
                 const cell = document.createElement('div');
                 cell.className = 'arc-cell';
