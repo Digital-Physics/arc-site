@@ -1422,10 +1422,27 @@
             Object.keys(solvedSteps).forEach(n => primNames.add(n));
             Object.keys(partialSteps).forEach(n => primNames.add(n));
 
+            // Count evo-solved programs so they appear in the primitives table
+            const evoSolveCounts = {};
+            (snapshot.tasks ?? []).forEach(t => {
+                const prog = t.evo?.program;
+                if (prog && t.solved_by === 'evo') {
+                    const name = prog.startsWith('evo:') ? prog.slice(4) : prog;
+                    name.split(' → ').forEach(step => {
+                        const s = step.trim();
+                        if (s) {
+                            primNames.add(s);
+                            evoSolveCounts[s] = (evoSolveCounts[s] ?? 0) + 1;
+                        }
+                    });
+                }
+            });
+
             const rows = [...primNames].map(name => ({
                 name,
-                solves:   solvedSteps[name]  ?? 0,
+                solves:   (solvedSteps[name] ?? 0) + (evoSolveCounts[name] ?? 0),
                 partials: partialSteps[name] ?? 0,
+                evo:      evoSolveCounts[name] ?? 0,
             }));
 
             const solvedMax  = Math.max(1, ...rows.map(r => r.solves));
@@ -1455,8 +1472,9 @@
                     const sPct = 100 * r.solves   / solvedMax;
                     const pPct = 100 * r.partials / partialMax;
                     const dim  = r.solves === 0 && r.partials === 0 ? 'opacity:.45' : '';
+                    const evoTag = r.evo ? `<span style="font-size:9px;background:#e8f5e9;color:#2e7d32;border:1px solid #2e7d3228;border-radius:3px;padding:0 4px;margin-left:4px;flex-shrink:0">evo</span>` : '';
                     return `<div class="mini-bar-row" style="display:grid;grid-template-columns:minmax(120px,1.3fr) 1fr 32px 1fr 32px;gap:10px;align-items:center;padding:2px 0;${dim}">
-                        <span class="mini-bar-label" title="${r.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span>
+                        <span class="mini-bar-label" title="${r.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center">${r.name}${evoTag}</span>
                         <div class="mini-bar-track"><div class="mini-bar-fill solved" style="width:${sPct}%"></div></div>
                         <span class="mini-bar-count" style="text-align:right">${r.solves || ''}</span>
                         <div class="mini-bar-track"><div class="mini-bar-fill partial" style="width:${pPct}%"></div></div>
@@ -1780,6 +1798,37 @@
     </tr>`;
             }).join('');
         
+
+        function renderLeaderboard() {
+            const yourScore = snapshot
+                ? (100 * snapshot.score.solved / snapshot.score.total)
+                : null;
+
+            // build rows including "You" entry
+            const rows = [...LEADERBOARD];
+            if (yourScore !== null) {
+                rows.push({ name: "Jon's Algorithm (on Training Set)", score: parseFloat(yourScore.toFixed(2)), note: 'latest run', you: true });
+                rows.sort((a, b) => b.score - a.score);
+            }
+
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = rows.map(r => {
+                const isYou = r.you;
+                const barClass = isYou ? 'bar-fg you' : 'bar-fg';
+                return `<tr class="${isYou ? 'you' : ''}">
+      <td>${r.name}</td>
+      <td>${r.score}%</td>
+      <td>
+        <div class="bar-cell">
+          <div class="bar-bg"><div class="${barClass}" style="width:${r.score}%"></div></div>
+          <span style="font-size:11px;color:var(--muted);white-space:nowrap">${r.score}%</span>
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:11px">${r.note}</td>
+    </tr>`;
+            }).join('');
+        }
+
 
         // ── chart ──────────────────────────────────────────────────────────────────
         function drawChart() {
@@ -2184,22 +2233,52 @@
             });
 
             // ── Guesses ───────────────────────────────────────────────
+            // Merge guesses from solver + evo sidecars.
+            // task.guesses = solver guesses, task.evo.guesses = evo guesses.
+            // For each test index, show up to 2 distinct guesses.
             const allGuesses = task.guesses ?? [];
+            const evoGuesses = task.evo?.guesses ?? [];
+            const evoSteps   = task.evo?.steps   ?? [];
             const allSteps   = task.steps   ?? [];
             const guessSection = document.getElementById('modal-guesses-section');
             const displayEl    = document.getElementById('modal-guess-display');
             displayEl.innerHTML = '';
             document.getElementById('modal-steps-section').style.display = 'none';
 
-            if (allGuesses.length === 0) {
+            // Build merged guess list per test pair
+            const nTestPairs = Math.max(allGuesses.length, evoGuesses.length, 1);
+            const mergedGuesses = [];
+            const mergedSteps   = [];
+            for (let ti = 0; ti < nTestPairs; ti++) {
+                const sg = allGuesses[ti] ?? [];
+                const eg = evoGuesses[ti] ?? [];
+                const ss = allSteps[ti]   ?? [];
+                const es = (evoSteps[ti]  ?? []).map(s => s ? `evo:${s.startsWith('evo:') ? s.slice(4) : s}` : s);
+                // Interleave: solver guess 1, evo guess (if different), solver guess 2
+                const combined = [], combinedSteps = [];
+                const seen = new Set();
+                const addGuess = (g, s) => {
+                    if (!g) return;
+                    const key = JSON.stringify(g);
+                    if (!seen.has(key)) { seen.add(key); combined.push(g); combinedSteps.push(s ?? ''); }
+                };
+                addGuess(sg[0], ss[0]);
+                addGuess(eg[0], es[0]);
+                addGuess(sg[1], ss[1]);
+                mergedGuesses.push(combined);
+                mergedSteps.push(combinedSteps);
+            }
+
+            const hasAnyGuess = mergedGuesses.some(g => g.length > 0);
+            if (!hasAnyGuess) {
                 guessSection.style.display = 'none';
             } else {
                 guessSection.style.display = 'block';
 
-                allGuesses.forEach((testGuesses, testIdx) => {
+                mergedGuesses.forEach((testGuesses, testIdx) => {
                     if (!testGuesses || testGuesses.length === 0) return;
 
-                    if (allGuesses.length > 1) {
+                    if (mergedGuesses.length > 1) {
                         const testLabel = document.createElement('div');
                         testLabel.className = 'modal-section-title';
                         testLabel.style.marginTop = testIdx === 0 ? '0' : '20px';
@@ -2210,45 +2289,50 @@
                     const row = document.createElement('div');
                     row.className = 'guesses-row';
 
-                    // Guess 1 — Beam/DSL
-                    const g0 = testGuesses[0];
-                    if (g0) {
-                        const cs = cellSizeFor(g0);
+                    testGuesses.forEach((g, gIdx) => {
+                        if (!g) return;
+                        const cs    = cellSizeFor(g);
                         const block = document.createElement('div');
                         block.className = 'guess-block';
 
                         const label = document.createElement('div');
-                        label.className = 'guess-label';
-                        const stepStr = allSteps[testIdx]?.[0] ?? '';
-                        const isFallbackStep = FALLBACK_STEPS.has(stepStr.split(' → ').pop()?.trim() ?? '');
-                        label.textContent = `Guess 1${isFallbackStep ? ' (fallback)' : ''}`;
+                        label.className = 'guess-label' + (gIdx > 0 ? ' guess-2' : '');
+                        const stepStr = mergedSteps[testIdx]?.[gIdx] ?? '';
+                        const isEvo   = stepStr.startsWith('evo:');
+                        const isFallbackStep = !isEvo && FALLBACK_STEPS.has(stepStr.split(' → ').pop()?.trim() ?? '');
+                        const tag = isEvo ? ' (evo)' : isFallbackStep ? ' (fallback)' : '';
+                        label.textContent = `Guess ${gIdx + 1}${tag}`;
+                        if (isEvo) label.style.color = '#2e7d32';
                         block.appendChild(label);
 
                         const inner = document.createElement('div');
                         inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
-                        inner.appendChild(makeGrid(g0, cs));
+                        inner.appendChild(makeGrid(g, cs));
                         if (stepStr) {
+                            const cleanStep = isEvo ? stepStr.slice(4) : stepStr;
                             const chainWrap = document.createElement('div');
-                            renderStepChain(stepStr, chainWrap);
+                            renderStepChain(cleanStep, chainWrap);
                             inner.appendChild(chainWrap);
                         }
                         block.appendChild(inner);
                         row.appendChild(block);
-                    }
+                    });
 
-                    // Guess 2 — NCA output (fetched separately and injected when available)
-                    const ncaGuessBlock = document.createElement('div');
-                    ncaGuessBlock.className = 'guess-block';
-                    ncaGuessBlock.dataset.ncaGuessTarget = testIdx;
-                    const ncaLabel = document.createElement('div');
-                    ncaLabel.className = 'guess-label guess-2';
-                    ncaLabel.textContent = 'Guess 2 (NCA)';
-                    ncaGuessBlock.appendChild(ncaLabel);
-                    const ncaPlaceholder = document.createElement('div');
-                    ncaPlaceholder.style.cssText = 'font-size:11px;color:var(--muted);padding:4px 0';
-                    ncaPlaceholder.textContent = 'loading NCA…';
-                    ncaGuessBlock.appendChild(ncaPlaceholder);
-                    row.appendChild(ncaGuessBlock);
+                    // NCA placeholder — only add if we have < 2 guesses and NCA might fill it
+                    if (testGuesses.length < 2) {
+                        const ncaGuessBlock = document.createElement('div');
+                        ncaGuessBlock.className = 'guess-block';
+                        ncaGuessBlock.dataset.ncaGuessTarget = testIdx;
+                        const ncaLabel = document.createElement('div');
+                        ncaLabel.className = 'guess-label guess-2';
+                        ncaLabel.textContent = 'Guess 2 (NCA)';
+                        ncaGuessBlock.appendChild(ncaLabel);
+                        const ncaPlaceholder = document.createElement('div');
+                        ncaPlaceholder.style.cssText = 'font-size:11px;color:var(--muted);padding:4px 0';
+                        ncaPlaceholder.textContent = 'loading NCA…';
+                        ncaGuessBlock.appendChild(ncaPlaceholder);
+                        row.appendChild(ncaGuessBlock);
+                    }
 
                     displayEl.appendChild(row);
                 });
