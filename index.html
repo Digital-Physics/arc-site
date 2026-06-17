@@ -1428,8 +1428,31 @@
                 partials: partialSteps[name] ?? 0,
             }));
 
-            const solvedMax  = Math.max(1, ...rows.map(r => r.solves));
-            const partialMax = Math.max(1, ...rows.map(r => r.partials));
+            // Add evo-solved programs so they appear in the primitives table
+            const evoSolveCounts = {};
+            (snapshot.tasks ?? []).forEach(t => {
+                const prog = t.evo?.program;
+                if (prog && t.solved_by === 'evo') {
+                    const name = prog.startsWith('evo:') ? prog.slice(4) : prog;
+                    name.split(' → ').forEach(step => {
+                        const s = step.trim();
+                        if (!s) return;
+                        primNames.add(s);
+                        evoSolveCounts[s] = (evoSolveCounts[s] ?? 0) + 1;
+                    });
+                }
+            });
+            // Merge evo counts into rows (and add any new evo-only rows)
+            const rowMap = new Map(rows.map(r => [r.name, r]));
+            Object.entries(evoSolveCounts).forEach(([name, count]) => {
+                if (rowMap.has(name)) {
+                    rowMap.get(name).solves += count;
+                    rowMap.get(name).evo = count;
+                } else {
+                    rowMap.set(name, { name, solves: count, partials: 0, evo: count });
+                }
+            });
+            const allRows = [...rowMap.values()];
 
             const sortSel    = document.getElementById('analytics-prim-sort');
             const unusedOnly = document.getElementById('analytics-prim-unused-only');
@@ -1440,23 +1463,27 @@
                 const mode = sortSel.value;
                 const unused = unusedOnly.checked;
                 let filtered = unused
-                    ? rows.filter(r => r.solves === 0)
-                    : rows.slice();
+                    ? allRows.filter(r => r.solves === 0)
+                    : allRows.slice();
                 if (mode === 'solves')   filtered.sort((a,b) => b.solves   - a.solves   || a.name.localeCompare(b.name));
                 if (mode === 'partials') filtered.sort((a,b) => b.partials - a.partials || a.name.localeCompare(b.name));
                 if (mode === 'unused')   filtered.sort((a,b) => (a.solves - b.solves) || (b.partials - a.partials) || a.name.localeCompare(b.name));
                 if (mode === 'name')     filtered.sort((a,b) => a.name.localeCompare(b.name));
 
-                const dead = rows.filter(r => r.solves === 0 && r.partials === 0).length;
+                const dead = allRows.filter(r => r.solves === 0 && r.partials === 0).length;
                 countEl.textContent =
-                    `${rows.length} primitives · ${rows.length - dead} active · ${dead} never fired`;
+                    `${allRows.length} primitives · ${allRows.length - dead} active · ${dead} never fired`;
+
+                const solvedMax  = Math.max(1, ...allRows.map(r => r.solves));
+                const partialMax = Math.max(1, ...allRows.map(r => r.partials));
 
                 listEl.innerHTML = filtered.map(r => {
-                    const sPct = 100 * r.solves   / solvedMax;
-                    const pPct = 100 * r.partials / partialMax;
-                    const dim  = r.solves === 0 && r.partials === 0 ? 'opacity:.45' : '';
+                    const sPct   = 100 * r.solves   / solvedMax;
+                    const pPct   = 100 * r.partials / partialMax;
+                    const dim    = r.solves === 0 && r.partials === 0 ? 'opacity:.45' : '';
+                    const evoTag = r.evo ? `<span style="font-size:9px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:3px;padding:0 3px;margin-left:4px;flex-shrink:0">evo</span>` : '';
                     return `<div class="mini-bar-row" style="display:grid;grid-template-columns:minmax(120px,1.3fr) 1fr 32px 1fr 32px;gap:10px;align-items:center;padding:2px 0;${dim}">
-                        <span class="mini-bar-label" title="${r.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span>
+                        <span class="mini-bar-label" title="${r.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:0">${r.name}${evoTag}</span>
                         <div class="mini-bar-track"><div class="mini-bar-fill solved" style="width:${sPct}%"></div></div>
                         <span class="mini-bar-count" style="text-align:right">${r.solves || ''}</span>
                         <div class="mini-bar-track"><div class="mini-bar-fill partial" style="width:${pPct}%"></div></div>
@@ -2241,20 +2268,18 @@
                     const row = document.createElement('div');
                     row.className = 'guesses-row';
 
-                    // Render all solver guesses (index 0 = Guess 1, index 1 = Guess 2, etc.)
+                    // Render all solver guesses (0 = Guess 1, 1 = Guess 2, etc.)
                     testGuesses.forEach((g, gIdx) => {
                         if (!g) return;
                         const cs    = cellSizeFor(g);
                         const block = document.createElement('div');
                         block.className = 'guess-block';
-
-                        const label    = document.createElement('div');
+                        const label = document.createElement('div');
                         label.className = 'guess-label' + (gIdx > 0 ? ' guess-2' : '');
-                        const stepStr  = allSteps[testIdx]?.[gIdx] ?? '';
+                        const stepStr = allSteps[testIdx]?.[gIdx] ?? '';
                         const isFallbackStep = FALLBACK_STEPS.has(stepStr.split(' → ').pop()?.trim() ?? '');
                         label.textContent = `Guess ${gIdx + 1}${isFallbackStep ? ' (fallback)' : ''}`;
                         block.appendChild(label);
-
                         const inner = document.createElement('div');
                         inner.style.cssText = 'display:flex;gap:14px;align-items:flex-start';
                         inner.appendChild(makeGrid(g, cs));
@@ -2267,7 +2292,7 @@
                         row.appendChild(block);
                     });
 
-                    // NCA placeholder for Guess 2 — only if solver didn't produce a second guess
+                    // NCA placeholder only if solver produced fewer than 2 guesses
                     if (testGuesses.length < 2) {
                         const ncaGuessBlock = document.createElement('div');
                         ncaGuessBlock.className = 'guess-block';
