@@ -1,0 +1,1 @@
+{"task_id": "dae9d2b5", "guesses": [[[[0, 6, 6], [6, 6, 6], [6, 0, 0]]]], "steps": [["evo:or_halves_4_3_to_6"]], "telemetry": {"gens_run": 256, "exit_reason": "budget", "best_fitness": 1.0, "best_prog": "or_halves_4_3_to_6"}, "gt_outputs": [[[0, 6, 6], [6, 6, 6], [6, 0, 0]], [[6, 6, 6], [6, 6, 0], [6, 6, 0]]], "_cached": false}

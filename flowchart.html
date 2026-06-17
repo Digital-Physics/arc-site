@@ -162,7 +162,7 @@
 <h1>ARC Solver — Pipeline</h1>
 
 <div class="chart">
-<svg id="svg" width="100%" viewBox="0 0 740 1200" xmlns="http://www.w3.org/2000/svg" style="display:block">
+<svg id="svg" width="100%" viewBox="0 0 740 1340" xmlns="http://www.w3.org/2000/svg" style="display:block">
 <defs>
   <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
     <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -267,16 +267,31 @@
   <rect x="600" y="616" width="72" height="36" rx="8" fill="var(--blue-fill)" stroke="var(--blue-stroke)" stroke-width="0.5"/>
   <text x="636" y="634" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-title)">output</text>
 </g>
-<line x1="370" y1="662" x2="370" y2="682" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
+<line x1="370" y1="662" x2="370" y2="690" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
+<text x="388" y="681" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">unsolved</text>
+
+<!-- ═══ 8b evolutionary search ═══ -->
+<g class="node" data-id="evo">
+  <rect x="202" y="690" width="336" height="56" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="0.5"/>
+  <text x="370" y="710" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="#1b5e20">evolutionary search</text>
+  <text x="370" y="730" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="#2e7d32">pop=200 · gens≤600 · 60 s · evo_search.py</text>
+</g>
+<line x1="538" y1="718" x2="600" y2="718" stroke="#2e7d32" stroke-width="1" marker-end="url(#arr)"/>
+<text x="568" y="711" text-anchor="middle" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="#2e7d32">solved</text>
+<g class="node" data-id="out-evo">
+  <rect x="600" y="700" width="72" height="36" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="0.5"/>
+  <text x="636" y="718" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="#1b5e20">output</text>
+</g>
+<line x1="370" y1="746" x2="370" y2="766" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
 
 <!-- fork label -->
-<text x="370" y="694" text-anchor="middle" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">run in parallel — same worker</text>
+<text x="370" y="778" text-anchor="middle" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">run in parallel — same worker</text>
 <!-- fork H-bar -->
-<line x1="230" y1="704" x2="510" y2="704" stroke="var(--arr)" stroke-width="1"/>
-<line x1="230" y1="682" x2="230" y2="704" stroke="var(--arr)" stroke-width="1"/>
-<line x1="510" y1="682" x2="510" y2="704" stroke="var(--arr)" stroke-width="1"/>
-<line x1="230" y1="704" x2="230" y2="720" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
-<line x1="510" y1="704" x2="510" y2="720" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
+<line x1="230" y1="788" x2="510" y2="788" stroke="var(--arr)" stroke-width="1"/>
+<line x1="230" y1="766" x2="230" y2="788" stroke="var(--arr)" stroke-width="1"/>
+<line x1="510" y1="766" x2="510" y2="788" stroke="var(--arr)" stroke-width="1"/>
+<line x1="230" y1="788" x2="230" y2="888" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
+<line x1="510" y1="788" x2="510" y2="888" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
 
 <!-- ═══ 9a NCA training ═══ -->
 <g class="node" data-id="nca">
@@ -284,18 +299,18 @@
   <text x="230" y="740" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--coral-title)">NCA training</text>
   <text x="230" y="760" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--coral-sub)">2000 epochs · 25 steps · ~60–120 s/task</text>
 </g>
-<line x1="230" y1="776" x2="230" y2="804" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
+<line x1="230" y1="776" x2="230" y2="888" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
 
 <!-- NCA sub-nodes -->
 <g class="node" data-id="attn">
-  <rect x="50" y="804" width="168" height="56" rx="8" fill="var(--amber-fill)" stroke="var(--amber-stroke)" stroke-width="0.5"/>
-  <text x="134" y="824" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--amber-title)">object attention</text>
-  <text x="134" y="844" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--amber-sub)">context_ch=16 · random init</text>
+  <rect x="50" y="888" width="168" height="56" rx="8" fill="var(--amber-fill)" stroke="var(--amber-stroke)" stroke-width="0.5"/>
+  <text x="134" y="908" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--amber-title)">object attention</text>
+  <text x="134" y="928" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--amber-sub)">context_ch=16 · random init</text>
 </g>
 <g class="node" data-id="cleanup">
-  <rect x="242" y="804" width="168" height="56" rx="8" fill="var(--coral-fill)" stroke="var(--coral-stroke)" stroke-width="0.5"/>
-  <text x="326" y="824" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--coral-title)">output cleanup</text>
-  <text x="326" y="844" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--coral-sub)">palette snap + isolated px</text>
+  <rect x="242" y="888" width="168" height="56" rx="8" fill="var(--coral-fill)" stroke="var(--coral-stroke)" stroke-width="0.5"/>
+  <text x="326" y="908" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--coral-title)">output cleanup</text>
+  <text x="326" y="928" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--coral-sub)">palette snap + isolated px</text>
 </g>
 
 <!-- ═══ 9b informed fallback ═══ -->
@@ -306,53 +321,54 @@
 </g>
 
 <!-- merge lines to guess assembly -->
-<line x1="230" y1="860" x2="230" y2="920" stroke="var(--arr)" stroke-width="1"/>
-<line x1="522" y1="776" x2="522" y2="920" stroke="var(--arr)" stroke-width="1"/>
-<line x1="230" y1="920" x2="522" y2="920" stroke="var(--arr)" stroke-width="1"/>
-<line x1="370" y1="920" x2="370" y2="936" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
+<line x1="230" y1="944" x2="230" y2="1004" stroke="var(--arr)" stroke-width="1"/>
+<line x1="522" y1="776" x2="522" y2="1004" stroke="var(--arr)" stroke-width="1"/>
+<line x1="230" y1="1004" x2="522" y2="1004" stroke="var(--arr)" stroke-width="1"/>
+<line x1="370" y1="1004" x2="370" y2="1020" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
 
 <!-- ═══ 10 assemble ═══ -->
 <g class="node" data-id="assembly">
-  <rect x="202" y="936" width="336" height="56" rx="8" fill="var(--bg2)" stroke="var(--border2)" stroke-width="0.5"/>
-  <text x="370" y="956" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text)">assemble()</text>
-  <text x="370" y="976" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">reads all sidecars → snapshot</text>
+  <rect x="202" y="1020" width="336" height="56" rx="8" fill="var(--bg2)" stroke="var(--border2)" stroke-width="0.5"/>
+  <text x="370" y="1040" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text)">assemble()</text>
+  <text x="370" y="1060" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">reads all sidecars → snapshot</text>
 </g>
 
 <!-- solver sidecar label (right of assembly) -->
 <g class="node" data-id="solver_sidecar">
-  <rect x="558" y="920" width="124" height="72" rx="8" fill="var(--blue-fill)" stroke="var(--blue-stroke)" stroke-width="0.5"/>
-  <text x="620" y="943" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-title)">&lt;id&gt;_solver.json</text>
-  <text x="620" y="962" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-sub)">guesses · traces</text>
-  <text x="620" y="979" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-sub)">beam · timing</text>
+  <rect x="558" y="1004" width="124" height="72" rx="8" fill="var(--blue-fill)" stroke="var(--blue-stroke)" stroke-width="0.5"/>
+  <text x="620" y="1027" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-title)">&lt;id&gt;_solver.json</text>
+  <text x="620" y="1046" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-sub)">guesses · traces</text>
+  <text x="620" y="1063" text-anchor="middle" dominant-baseline="central" font-size="10" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--blue-sub)">beam · timing</text>
 </g>
-<line x1="538" y1="956" x2="558" y2="956" stroke="var(--blue-stroke)" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)"/>
-<line x1="620" y1="992" x2="620" y2="1004" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2"/>
-<line x1="538" y1="1004" x2="620" y2="1004" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2"/>
-<line x1="538" y1="992" x2="538" y2="1004" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)"/>
-<line x1="370" y1="992" x2="370" y2="1020" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
+<line x1="538" y1="1040" x2="558" y2="1040" stroke="var(--blue-stroke)" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+<line x1="620" y1="1076" x2="620" y2="1088" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2"/>
+<line x1="538" y1="1088" x2="620" y2="1088" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2"/>
+<line x1="538" y1="1076" x2="538" y2="1088" stroke="var(--arr)" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+<line x1="370" y1="1076" x2="370" y2="1104" stroke="var(--arr)" stroke-width="1" marker-end="url(#arr)"/>
 
 <!-- ═══ 11 guesses ═══ -->
 <g class="node" data-id="output">
-  <rect x="245" y="1020" width="250" height="56" rx="8" fill="var(--teal-fill)" stroke="var(--teal-stroke)" stroke-width="0.5"/>
-  <text x="370" y="1040" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--teal-title)">guesses (up to 2)</text>
-  <text x="370" y="1060" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--teal-sub)">program name + output grid</text>
+  <rect x="245" y="1104" width="250" height="56" rx="8" fill="var(--teal-fill)" stroke="var(--teal-stroke)" stroke-width="0.5"/>
+  <text x="370" y="1124" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--teal-title)">guesses (up to 2)</text>
+  <text x="370" y="1144" text-anchor="middle" dominant-baseline="central" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--teal-sub)">program name + output grid</text>
 </g>
 
 <!-- ═══ legend ═══ -->
-<rect x="18" y="1100" width="704" height="76" rx="8" fill="var(--bg2)" stroke="var(--border)" stroke-width="0.5"/>
-<rect x="30" y="1114" width="10" height="10" rx="2" fill="var(--purple-fill)" stroke="var(--purple-stroke)" stroke-width="0.5"/>
-<text x="46" y="1123" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">inference</text>
-<rect x="30" y="1134" width="10" height="10" rx="2" fill="var(--blue-fill)" stroke="var(--blue-stroke)" stroke-width="0.5"/>
-<text x="46" y="1143" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">search</text>
-<rect x="120" y="1114" width="10" height="10" rx="2" fill="var(--teal-fill)" stroke="var(--teal-stroke)" stroke-width="0.5"/>
-<text x="136" y="1123" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">input / output</text>
-<rect x="120" y="1134" width="10" height="10" rx="2" fill="var(--coral-fill)" stroke="var(--coral-stroke)" stroke-width="0.5"/>
-<text x="136" y="1143" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">NCA branch</text>
-<rect x="250" y="1114" width="10" height="10" rx="2" fill="var(--amber-fill)" stroke="var(--amber-stroke)" stroke-width="0.5"/>
-<text x="266" y="1123" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">needs revisiting ⚑</text>
-<text x="250" y="1143" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">hover any box for source + details</text>
-<text x="460" y="1123" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">dashed = not wired up / cache path</text>
-<text x="460" y="1143" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">⚑ = disabled or needs attention</text>
+<rect x="18" y="1184" width="704" height="76" rx="8" fill="var(--bg2)" stroke="var(--border)" stroke-width="0.5"/>
+<rect x="30" y="1198" width="10" height="10" rx="2" fill="var(--purple-fill)" stroke="var(--purple-stroke)" stroke-width="0.5"/>
+<text x="46" y="1207" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">inference</text>
+<rect x="30" y="1218" width="10" height="10" rx="2" fill="var(--blue-fill)" stroke="var(--blue-stroke)" stroke-width="0.5"/>
+<text x="46" y="1227" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">search</text>
+<rect x="120" y="1198" width="10" height="10" rx="2" fill="var(--teal-fill)" stroke="var(--teal-stroke)" stroke-width="0.5"/>
+<text x="136" y="1207" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">input / output</text>
+<rect x="120" y="1218" width="10" height="10" rx="2" fill="var(--coral-fill)" stroke="var(--coral-stroke)" stroke-width="0.5"/>
+<text x="136" y="1227" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">NCA branch</text>
+<rect x="250" y="1198" width="10" height="10" rx="2" fill="#e8f5e9" stroke="#2e7d32" stroke-width="0.5"/>
+<text x="266" y="1207" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">evo + discovery</text>
+<rect x="250" y="1218" width="10" height="10" rx="2" fill="var(--amber-fill)" stroke="var(--amber-stroke)" stroke-width="0.5"/>
+<text x="266" y="1227" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text2)">needs revisiting ⚑</text>
+<text x="460" y="1207" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">dashed = not wired up / cache path</text>
+<text x="460" y="1227" font-size="11" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="var(--text3)">⚑ = disabled or needs attention</text>
 </svg>
 </div>
 
@@ -414,6 +430,16 @@ const NODES = {
   retry: {
     file: 'arc_solver/search.py → solver() — bg retry block + near-miss post-pass block',
     tip: 'BG retry: if beam found nothing AND any training input has a non-zero majority bg with 0 present, reruns beam with force_bg=0 (10 s budget) — catches sparse-grid tasks where majority-vote inverts fg/bg. Near-miss post-pass: if best_score < 0.1 and no true solve, reconstructs the best partial program from beam telemetry and tries extending it with every menu step (20 s budget).',
+    flag: null
+  },
+  evo: {
+    file: 'arc_solver/evo_search.py → evolutionary_search()  |  primitive_discovery_loop.py',
+    tip: 'Evolutionary search over DSL programs. Population of 200, up to 600 generations, 60s budget. Seeds population from base_programs() + parameterized_programs(). Mutation: swap/insert/delete one step. Crossover: one-point splice. Fitness: exact training pair matches / total pairs. Telemetry (best_fitness, exit_reason, gens_run, best_prog) written to _evo.json sidecar. If evo fails, primitive_discovery_loop.py calls Claude to write a new primitive, verifies it, integrates it into the DSL, then re-runs evo.',
+    flag: null
+  },
+  'out-evo': {
+    file: 'arc_solver/evo_search.py → evolutionary_search()',
+    tip: 'Program found by evolutionary search that exactly matches all training outputs, applied to the test input. Written to <id>_evo.json sidecar.',
     flag: null
   },
   'out-retry': { file: 'arc_solver/search.py → solver()', tip: 'Output from either the bg=0 retry beam or the near-miss post-pass extension, whichever finds an exact match first.', flag: null },

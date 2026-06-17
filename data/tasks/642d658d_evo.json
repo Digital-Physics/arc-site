@@ -1,0 +1,1 @@
+{"task_id": "642d658d", "guesses": [[[[2]], [[3]]]], "steps": [["evo:find_most_common_cross_arm_color", "evo:fill_rect_1_2_3_border \u2192 find_most_common_cross_arm_color"]], "telemetry": {"gens_run": 4, "exit_reason": "solved", "best_fitness": 1.0, "best_prog": "find_most_common_cross_arm_color"}, "gt_outputs": [[[2]]], "_cached": false}

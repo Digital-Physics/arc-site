@@ -394,6 +394,21 @@
             margin-left: 4px;
         }
 
+        .task-badge.evo {
+            background: #22c55e12;
+            color: #16a34a;
+            border: 1px solid #22c55e28;
+            margin-left: 4px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .task-badge.evo {
+                color: #4ade80;
+                border-color: #4ade8028;
+                background: #4ade8012;
+            }
+        }
+
         .task-preview {
             display: flex;
             gap: 8px;
@@ -1223,6 +1238,15 @@
                 </div>
             </div>
 
+            <!-- ── EVO ANALYTICS ── -->
+            <div class="chart-title" style="margin-bottom:16px;margin-top:32px">Evolutionary search analytics</div>
+            <div class="analytics-grid">
+                <div class="analytics-card" style="grid-column: 1 / -1">
+                    <div class="analytics-card-title">Evo coverage &amp; primitive discovery</div>
+                    <div id="analytics-evo" style="font-size:11px;color:var(--muted)">—</div>
+                </div>
+            </div>
+
         </div>
 
         <!-- ── TASKS VIEW ── -->
@@ -1234,6 +1258,7 @@
                 <button class="filter-btn" data-filter="unsolved" onclick="setFilter('unsolved',this)">Unsolved</button>
                 <button class="filter-btn" data-filter="near-miss" onclick="setFilter('near-miss',this)" title="unsolved tasks where beam best_score < 0.1 — i.e. the search got very close">Near-miss</button>
                 <button class="filter-btn" data-filter="nca-solved" onclick="setFilter('nca-solved',this)" title="tasks solved by NCA (DSL failed)">NCA-solved</button>
+                <button class="filter-btn" data-filter="evo-solved" onclick="setFilter('evo-solved',this)" title="tasks solved by evolutionary search">EVO-solved</button>
                 <span class="task-count" id="task-count"></span>
             </div>
             <div class="task-grid" id="task-grid">
@@ -1379,6 +1404,7 @@
 
             renderAnalytics();
             renderNCAAnalytics();
+            renderEvoAnalytics();
         }
 
         function renderAnalytics() {
@@ -1695,7 +1721,37 @@
             renderAccHist(document.getElementById('analytics-nca-test-hist'), testAccVals, 'test accuracy');
         }
 
-        function renderLeaderboard() {
+        function renderEvoAnalytics() {
+            if (!snapshot) return;
+            const tasks      = snapshot.tasks ?? [];
+            const evoSummary = snapshot.evo_summary ?? null;
+            const el         = document.getElementById('analytics-evo');
+            if (!el) return;
+
+            const evoSolved    = evoSummary?.evo_solved
+                               ?? tasks.filter(t => t.solved_by === 'evo').length;
+            const evoOnly      = evoSummary?.evo_only_solved
+                               ?? tasks.filter(t => t.solved_by === 'evo').length;
+            const evoTasks     = tasks.filter(t => t.evo != null);
+            const discovered   = evoTasks.filter(t => t.evo?.program?.startsWith('evo:')).length;
+
+            if (evoSolved === 0 && evoTasks.length === 0) {
+                el.innerHTML = `<span style="color:var(--muted);font-size:11px">No evo data yet — run the discovery loop to populate.</span>`;
+                return;
+            }
+
+            el.innerHTML = `
+                <div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:4px 20px;font-size:11px;line-height:1.7">
+                    <span style="color:var(--muted)">evo solved</span>
+                    <span style="color:#16a34a">${evoSolved}</span>
+                    <span style="color:var(--muted)">evo-only (not beam)</span>
+                    <span style="color:#16a34a">${evoOnly}</span>
+                    <span style="color:var(--muted)">tasks with sidecar</span>
+                    <span>${evoTasks.length}</span>
+                    <span style="color:var(--muted)">new primitives used</span>
+                    <span>${discovered}</span>
+                </div>`;
+        }
             const yourScore = snapshot
                 ? (100 * snapshot.score.solved / snapshot.score.total)
                 : null;
@@ -1872,6 +1928,7 @@
                 if (activeFilter === 'unsolved'   && t.status === 'solved') return false;
                 if (activeFilter === 'near-miss'  && !isNearMiss(t))        return false;
                 if (activeFilter === 'nca-solved' && t.solved_by !== 'nca') return false;
+                if (activeFilter === 'evo-solved' && t.solved_by !== 'evo') return false;
                 if (q && !t.id.toLowerCase().includes(q)) return false;
                 return true;
             });
@@ -1960,6 +2017,7 @@
         <span style="display:flex;align-items:center;gap:4px">
           <span class="task-badge ${task.status}">${task.status}</span>
           ${task.solved_by === 'nca' ? '<span class="task-badge nca">NCA</span>' :
+            task.solved_by === 'evo' ? '<span class="task-badge evo">EVO</span>' :
             (task.nca?.any_exact && task.status !== 'solved') ? '<span class="task-badge nca" title="NCA reached exact match on training pairs">NCA✓</span>' : ''}
         </span>
       </div>

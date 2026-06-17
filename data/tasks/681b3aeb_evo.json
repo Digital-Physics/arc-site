@@ -1,0 +1,1 @@
+{"task_id": "681b3aeb", "guesses": [[[[8, 8, 2], [8, 2, 2], [8, 8, 8]]]], "steps": [["evo:merge_two_shapes_3x3"]], "telemetry": {"gens_run": 238, "exit_reason": "budget", "best_fitness": 1.0, "best_prog": "merge_two_shapes_3x3"}, "gt_outputs": [[[8, 8, 2], [8, 2, 2], [8, 8, 8]]], "_cached": false}

@@ -1,0 +1,1 @@
+{"task_id": "1990f7a8", "guesses": [[]], "steps": [[]], "telemetry": {"gens_run": 493, "exit_reason": "budget", "best_fitness": 0.0, "best_prog": ""}, "gt_outputs": [[[2, 0, 2, 0, 0, 0, 2], [0, 2, 0, 0, 0, 2, 2], [2, 2, 2, 0, 2, 0, 2], [0, 0, 0, 0, 0, 0, 0], [2, 0, 2, 0, 2, 2, 2], [2, 2, 2, 0, 2, 0, 2], [2, 0, 0, 0, 2, 0, 2]]], "wall_s": 220.11, "_cached": false}

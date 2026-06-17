@@ -1,0 +1,1 @@
+{"task_id": "bc1d5164", "guesses": [[[[0, 1, 1], [1, 0, 0], [0, 1, 1]]]], "steps": [["evo:compress_5x7_to_3x3"]], "telemetry": {"gens_run": 237, "exit_reason": "budget", "best_fitness": 1.0, "best_prog": "compress_5x7_to_3x3"}, "gt_outputs": [[[0, 1, 1], [1, 0, 0], [0, 1, 1]]], "_cached": false}

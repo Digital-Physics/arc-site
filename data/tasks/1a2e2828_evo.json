@@ -1,0 +1,1 @@
+{"task_id": "1a2e2828", "guesses": [[]], "steps": [[]], "telemetry": {"gens_run": 270, "exit_reason": "budget", "best_fitness": 0.8, "best_prog": "cross_through_6_as_2 \u2192 segment_8 \u2192 cross_through_5_as_3 \u2192 fill_background_4 \u2192 count_to_1x1"}, "gt_outputs": [[[7]]], "wall_s": 220.07, "_cached": false}

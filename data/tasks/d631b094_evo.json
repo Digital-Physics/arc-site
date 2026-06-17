@@ -1,0 +1,1 @@
+{"task_id": "d631b094", "guesses": [[[[0, 0, 0, 0]], [[7, 7, 7, 7]]]], "steps": [["evo:count_fg_cells_as_row", "evo:count_fg_cells_as_row \u2192 crop_to_content \u2192 recolor_0\u21927"]], "telemetry": {"gens_run": 2, "exit_reason": "solved", "best_fitness": 1.0, "best_prog": "count_fg_cells_as_row"}, "gt_outputs": [[[4, 4, 4, 4, 4]]], "_cached": false}

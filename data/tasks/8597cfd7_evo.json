@@ -1,0 +1,1 @@
+{"task_id": "8597cfd7", "guesses": [[[[4, 4], [4, 4]], [[2, 2], [2, 2]]]], "steps": [["evo:color_growth_winner_2x2", "evo:keep_color_0 \u2192 cross_through_2_as_4 \u2192 color_growth_winner_2x2"]], "telemetry": {"gens_run": 7, "exit_reason": "solved", "best_fitness": 1.0, "best_prog": "color_growth_winner_2x2"}, "gt_outputs": [[[4, 4], [4, 4]]], "_cached": false}

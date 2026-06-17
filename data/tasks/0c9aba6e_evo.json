@@ -1,0 +1,1 @@
+{"task_id": "0c9aba6e", "guesses": [[]], "steps": [[]], "telemetry": {"gens_run": 600, "exit_reason": "gen_cap", "best_fitness": 0.0, "best_prog": ""}, "gt_outputs": [[[0, 0, 8, 0], [0, 0, 0, 8], [0, 8, 8, 0], [0, 0, 0, 0], [0, 8, 0, 0], [8, 8, 0, 0]]], "wall_s": 149.76, "_cached": false}
